@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
 import Home from './pages/Home'
 import Library from './pages/Library'
@@ -10,6 +11,7 @@ import Settings from './pages/Settings'
 export default function App() {
   return (
     <BrowserRouter>
+      <ErrorBoundary>
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -20,6 +22,7 @@ export default function App() {
           <Route path="/ajustes" element={<Settings />} />
         </Routes>
       </Layout>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }
