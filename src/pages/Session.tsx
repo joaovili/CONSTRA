@@ -18,16 +18,17 @@ export default function SessionPage() {
   const [showAdd, setShowAdd] = useState(false)
 
   const exById = useMemo(() => new Map((exercises ?? []).map((e) => [e.id, e])), [exercises])
-  const routine = useMemo(
-    () => (session?.routineId ? (routines ?? []).find((r) => r.id === ss.routineId) : undefined),
-    [routines, session],
-  )
+  const routine = useMemo(() => {
+    const rid = session?.routineId
+    if (!rid) return undefined
+    return (routines ?? []).find((r) => r.id === rid)
+  }, [routines, session])
 
   // exercícios da sessão = da rotina + extras adicionados
   const exerciseIds = useMemo(() => {
     if (!session) return []
     const fromRoutine = routine?.items.map((i) => i.exerciseId) ?? []
-    const fromSets = ss.sets.map((s) => s.exerciseId)
+    const fromSets = session.sets.map((s) => s.exerciseId)
     const ordered: string[] = []
     for (const eid of [...fromRoutine, ...fromSets]) {
       if (!ordered.includes(eid)) ordered.push(eid)
