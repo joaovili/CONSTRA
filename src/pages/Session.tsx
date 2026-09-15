@@ -30,6 +30,7 @@ function SessionView({ session }: { session: WorkoutSession }) {
   const [q, setQ] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     ensureSettings()
@@ -71,6 +72,7 @@ function SessionView({ session }: { session: WorkoutSession }) {
   }
 
   async function addSet(exerciseId: string) {
+    setCollapsed((c) => ({ ...c, [exerciseId]: false }))
     await persistSets([...session.sets, blankSet(exerciseId, setsOf(exerciseId).length + 1)])
   }
 
@@ -130,17 +132,40 @@ function SessionView({ session }: { session: WorkoutSession }) {
           const sets = setsOf(eid)
           const target = routine?.items.find((i) => i.exerciseId === eid)
           const suggestion = suggestNext(allSessions, eid)
+          const isCollapsed = collapsed[eid] ?? false
+          const doneSets = sets.filter((s) => s.done)
+          const top = doneSets.reduce<{ weight: number; reps: number } | null>(
+            (best, s) =>
+              !best || s.weight > best.weight || (s.weight === best.weight && s.reps > best.reps)
+                ? { weight: s.weight, reps: s.reps }
+                : best,
+            null,
+          )
           return (
             <div key={eid} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-extrabold leading-tight">{ex?.name ?? 'Exercício removido'}</p>
-                  <p className="text-xs text-zinc-500">
-                    {target ? `Meta: ${target.targetSets}×${target.targetReps}` : 'Avulso'}
-                    {suggestion ? ` • Última: ${suggestion.weight}×${suggestion.reps}` : ''}
+                <button
+                  onClick={() => setCollapsed((c) => ({ ...c, [eid]: !isCollapsed }))}
+                  aria-expanded={!isCollapsed}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <p className="font-extrabold leading-tight">
+                    <span className="mr-1 inline-block w-4 text-zinc-500">{isCollapsed ? '▸' : '▾'}</span>
+                    {ex?.name ?? 'Exercício removido'}
                   </p>
-                  {suggestion && <p className="mt-1 text-xs text-lime-300/90">💡 {suggestion.hint}</p>}
-                </div>
+                  {isCollapsed ? (
+                    <p className="mt-0.5 text-xs text-zinc-400">
+                      {doneSets.length}/{sets.length} feitas
+                      {top ? ` • top ${top.weight}×${top.reps}` : ''}
+                      {target ? ` • meta ${target.targetSets}×${target.targetReps}` : ''}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-zinc-500">
+                      {target ? `Meta: ${target.targetSets}×${target.targetReps}` : 'Avulso'}
+                      {suggestion ? ` • Última: ${suggestion.weight}×${suggestion.reps}` : ''}
+                    </p>
+                  )}
+                </button>
                 <button
                   onClick={() => addSet(eid)}
                   className="shrink-0 rounded-xl bg-lime-400 px-3 py-2 text-sm font-extrabold text-black"
@@ -148,6 +173,9 @@ function SessionView({ session }: { session: WorkoutSession }) {
                   + Série
                 </button>
               </div>
+              {isCollapsed ? null : (
+              <>
+                {suggestion && <p className="mt-1 text-xs text-lime-300/90">💡 {suggestion.hint}</p>}
 
               <div className="mt-3 space-y-2">
                 {sets.map((s) => {
@@ -230,6 +258,8 @@ function SessionView({ session }: { session: WorkoutSession }) {
                   </button>
                 )}
               </div>
+              </>
+              )}
             </div>
           )
         })}
