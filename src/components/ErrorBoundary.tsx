@@ -12,7 +12,7 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
   }
 
   componentDidCatch(error: Error) {
-    console.error('[Logbook] crash:', error)
+    console.error('[CONSTRA] crash:', error)
   }
 
   render() {

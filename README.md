@@ -1,4 +1,4 @@
-# 💪 Logbook de Treino (PWA)
+# CONSTRA (PWA)
 
 Logbook universal para anotar **carga × reps** de cada exercício e ver a progressão. Mobile-first, offline, instalável no iPhone via Safari.
 
@@ -51,7 +51,7 @@ O projeto já tem `Dockerfile` + `nginx.conf` (build estático servido via nginx
 
 1. Abrir a URL no **Safari** (Chrome no iOS não instala PWA)
 2. **Compartilhar ⬆️ → Adicionar à Tela de Início**
-3. Abrir pelo ícone Logbook (offline funciona)
+3. Abrir pelo ícone CONSTRA (offline funciona)
 4. Exportar backup JSON de tempos em tempos em **Ajustes** (o iOS pode limpar dados do site sem espaço)
 
 ## Stack

@@ -76,7 +76,7 @@ export default function Home() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl font-extrabold tracking-tight">💪 Logbook</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight">CONSTRA</h1>
         <p className="text-sm text-zinc-400">
           {totalSessions ?? 0} treinos registrados • anote carga e veja a progressão
         </p>

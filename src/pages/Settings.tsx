@@ -23,13 +23,13 @@ export default function Settings() {
 
   async function doExport() {
     const json = await exportJSON()
-    downloadFile(`logbook-backup-${new Date().toISOString().slice(0, 10)}.json`, json)
+    downloadFile(`constra-backup-${new Date().toISOString().slice(0, 10)}.json`, json)
     setMsg('Backup exportado! Guarde o arquivo (importante no iOS).')
   }
 
   async function doCSV() {
     const csv = sessionsToCSV(sessions ?? [])
-    downloadFile('logbook-series.csv', csv, 'text/csv')
+    downloadFile('constra-series.csv', csv, 'text/csv')
     setMsg('CSV exportado!')
   }
 
@@ -124,7 +124,7 @@ export default function Settings() {
             <li>Abra esta página no <b>Safari</b> {isIOS() ? '(você já está nele ✅)' : '(no iPhone use o Safari)'}</li>
             <li>Toque em <b>Compartilhar ⬆️</b></li>
             <li><b>Adicionar à Tela de Início</b> → Adicionar</li>
-            <li>Abra pelo ícone Logbook na home (fullscreen + offline)</li>
+            <li>Abra pelo ícone CONSTRA na home (fullscreen + offline)</li>
           </ol>
         )}
       </div>

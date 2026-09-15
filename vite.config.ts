@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Logbook de Treino',
-        short_name: 'Logbook',
-        description: 'Anote cargas, reps e progressão de cada exercício. Offline, rápido, no bolso.',
+        name: 'CONSTRA',
+        short_name: 'CONSTRA',
+        description: 'CONSTRA: anote cargas, reps e progressão de cada exercício. Offline, rápido, no bolso.',
         theme_color: '#09090b',
         background_color: '#09090b',
         display: 'standalone',
