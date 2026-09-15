@@ -95,6 +95,7 @@ function SessionView({ session }: { session: WorkoutSession }) {
   async function addExerciseToSession(exerciseId: string) {
     setShowAdd(false)
     setQ('')
+    setCollapsed((c) => ({ ...c, [exerciseId]: false }))
     await persistSets([...session.sets, blankSet(exerciseId, setsOf(exerciseId).length + 1)])
   }
 
@@ -132,7 +133,7 @@ function SessionView({ session }: { session: WorkoutSession }) {
           const sets = setsOf(eid)
           const target = routine?.items.find((i) => i.exerciseId === eid)
           const suggestion = suggestNext(allSessions, eid)
-          const isCollapsed = collapsed[eid] ?? false
+          const isCollapsed = collapsed[eid] ?? true
           const doneSets = sets.filter((s) => s.done)
           const top = doneSets.reduce<{ weight: number; reps: number } | null>(
             (best, s) =>
