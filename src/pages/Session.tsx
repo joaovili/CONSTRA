@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import ConfirmDialog from '../components/ConfirmDialog'
 import RestTimer from '../components/RestTimer'
 import { db, ensureSettings } from '../lib/db'
 import { detectPR, lastLoad, suggestNext } from '../lib/stats'
@@ -114,8 +115,9 @@ export default function SessionPage() {
     navigate('/')
   }
 
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
   async function deleteThisSession() {
-    if (!confirm('Excluir este treino e todas as séries lançadas?')) return
     await db.sessions.delete(ss.id)
     navigate('/')
   }
@@ -279,11 +281,30 @@ export default function SessionPage() {
         </button>
       )}
       <button
-        onClick={deleteThisSession}
+        onClick={() => setConfirmDelete(true)}
         className="w-full rounded-xl border border-red-900 py-3 text-sm font-bold text-red-400"
       >
         Excluir este treino
       </button>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Excluir treino?"
+        description={
+          <>
+            <span className="font-bold text-zinc-200">{ss.routineName}</span>
+            <br />
+            {new Date(ss.startedAt).toLocaleString('pt-BR')}
+            <br />
+            {ss.sets.filter((x) => x.done).length} séries feitas serão apagadas.
+            <br />
+            <span className="text-red-300">Não dá pra desfazer.</span>
+          </>
+        }
+        confirmLabel="Excluir treino"
+        onConfirm={deleteThisSession}
+        onClose={() => setConfirmDelete(false)}
+      />
     </div>
   )
 }

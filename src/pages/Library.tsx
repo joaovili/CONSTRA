@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { db } from '../lib/db'
 import type { Equipment, MuscleGroup } from '../lib/types'
 import { uid } from '../lib/types'
@@ -15,6 +16,7 @@ export default function Library() {
   const [mg, setMg] = useState<MuscleGroup>('Peito')
   const [eq, setEq] = useState<Equipment>('Haltere')
   const [uni, setUni] = useState(false)
+  const [pendingId, setPendingId] = useState<string | null>(null)
 
   const filtered = (exercises ?? []).filter((e) => {
     if (muscle !== 'Todas' && e.muscleGroup !== muscle) return false
@@ -29,10 +31,13 @@ export default function Library() {
     setName('')
   }
 
-  async function remove(id: string) {
-    if (!confirm('Excluir exercício?')) return
-    await db.exercises.delete(id)
+  async function remove() {
+    if (!pendingId) return
+    await db.exercises.delete(pendingId)
+    setPendingId(null)
   }
+
+  const pendingEx = pendingId ? (exercises ?? []).find((e) => e.id === pendingId) : undefined
 
   return (
     <div className="space-y-4">
@@ -67,7 +72,7 @@ export default function Library() {
                 {e.unilateral ? ' • unilateral' : ''}
               </p>
             </div>
-            <button onClick={() => remove(e.id)} className="rounded-lg bg-zinc-800 px-2 py-1 text-sm">
+            <button onClick={() => setPendingId(e.id)} className="rounded-lg bg-zinc-800 px-2 py-1 text-sm">
               🗑
             </button>
           </div>
@@ -103,6 +108,25 @@ export default function Library() {
           Adicionar
         </button>
       </div>
+
+      <ConfirmDialog
+        open={pendingId !== null}
+        title="Excluir exercício?"
+        description={
+          pendingEx ? (
+            <>
+              <span className="font-bold text-zinc-200">{pendingEx.name}</span>
+              <br />
+              {pendingEx.muscleGroup} • {pendingEx.equipment}
+              <br />
+              Séries já registradas serão mantidas no histórico.
+            </>
+          ) : undefined
+        }
+        confirmLabel="Excluir exercício"
+        onConfirm={remove}
+        onClose={() => setPendingId(null)}
+      />
     </div>
   )
 }

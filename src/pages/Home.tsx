@@ -1,10 +1,16 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { db } from '../lib/db'
 import { seedIfEmpty } from '../lib/seeds'
 import { uid, type Routine } from '../lib/types'
 import { useEffect } from 'react'
+
+interface PendingDelete {
+  kind: 'session' | 'routine'
+  id: string
+}
 
 export default function Home() {
   const navigate = useNavigate()
@@ -12,6 +18,7 @@ export default function Home() {
   const sessions = useLiveQuery(() => db.sessions.orderBy('startedAt').reverse().limit(5).toArray())
   const [seeding, setSeeding] = useState(true)
   const [newName, setNewName] = useState('')
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
 
   useEffect(() => {
     seedIfEmpty().finally(() => setSeeding(false))
@@ -48,15 +55,22 @@ export default function Home() {
     navigate(`/rotina/${id}`)
   }
 
-  async function deleteRoutine(id: string) {
-    if (!confirm('Excluir esta rotina? (sessões antigas são mantidas)')) return
-    await db.routines.delete(id)
+  async function confirmPendingDelete() {
+    if (!pendingDelete) return
+    if (pendingDelete.kind === 'routine') {
+      await db.routines.delete(pendingDelete.id)
+    } else {
+      await db.sessions.delete(pendingDelete.id)
+    }
+    setPendingDelete(null)
   }
 
-  async function deleteSession(id: string) {
-    if (!confirm('Excluir este treino e todas as séries lançadas?')) return
-    await db.sessions.delete(id)
-  }
+  const pendingSession = pendingDelete?.kind === 'session'
+    ? (sessions ?? []).find((s) => s.id === pendingDelete.id)
+    : undefined
+  const pendingRoutine = pendingDelete?.kind === 'routine'
+    ? (routines ?? []).find((r) => r.id === pendingDelete.id)
+    : undefined
 
   if (seeding) return <p className="text-zinc-400">Carregando...</p>
 
@@ -111,7 +125,7 @@ export default function Home() {
                   <Link to={`/rotina/${r.id}`} className="rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold">
                     Editar
                   </Link>
-                  <button onClick={() => deleteRoutine(r.id)} className="rounded-lg bg-zinc-800 px-3 py-2 text-sm">
+                  <button onClick={() => setPendingDelete({ kind: 'routine', id: r.id })} className="rounded-lg bg-zinc-800 px-3 py-2 text-sm">
                     🗑
                   </button>
                 </div>
@@ -147,7 +161,7 @@ export default function Home() {
               </p>
             </Link>
             <button
-              onClick={() => deleteSession(s.id)}
+              onClick={() => setPendingDelete({ kind: 'session', id: s.id })}
               aria-label="Excluir treino"
               className="shrink-0 rounded-lg bg-zinc-800 px-3 py-2 text-sm"
             >
@@ -156,6 +170,35 @@ export default function Home() {
           </div>
         ))}
       </section>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={pendingDelete?.kind === 'routine' ? 'Excluir rotina?' : 'Excluir treino?'}
+        description={
+          pendingSession ? (
+            <>
+              <span className="font-bold text-zinc-200">{pendingSession.routineName}</span>
+              <br />
+              {new Date(pendingSession.startedAt).toLocaleString('pt-BR')}
+              <br />
+              {pendingSession.sets.filter((x) => x.done).length} séries feitas serão apagadas.
+              <br />
+              <span className="text-red-300">Não dá pra desfazer.</span>
+            </>
+          ) : pendingRoutine ? (
+            <>
+              <span className="font-bold text-zinc-200">{pendingRoutine.name}</span>
+              <br />
+              {pendingRoutine.items.length} exercícios na rotina.
+              <br />
+              Treinos já registrados serão mantidos.
+            </>
+          ) : undefined
+        }
+        confirmLabel={pendingDelete?.kind === 'routine' ? 'Excluir rotina' : 'Excluir treino'}
+        onConfirm={confirmPendingDelete}
+        onClose={() => setPendingDelete(null)}
+      />
     </div>
   )
 }

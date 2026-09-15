@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { db, ensureSettings } from '../lib/db'
 import { downloadFile, exportJSON, importJSON, sessionsToCSV } from '../lib/backup'
 import { isIOS, isStandalone } from '../components/Layout'
@@ -14,6 +15,7 @@ export default function Settings() {
   const sessions = useLiveQuery(() => db.sessions.toArray())
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
+  const [confirmWipe, setConfirmWipe] = useState(false)
 
   useEffect(() => {
     ensureSettings()
@@ -46,13 +48,12 @@ export default function Settings() {
   }
 
   async function wipe() {
-    if (!confirm('Apagar TUDO (exercícios, rotinas, sessões)? Exporte backup antes!')) return
-    if (!confirm('Tem certeza absoluta?')) return
     await db.transaction('rw', [db.exercises, db.routines, db.sessions], async () => {
       await db.exercises.clear()
       await db.routines.clear()
       await db.sessions.clear()
     })
+    setConfirmWipe(false)
     setMsg('Tudo apagado.')
   }
 
@@ -128,9 +129,26 @@ export default function Settings() {
         )}
       </div>
 
-      <button onClick={wipe} className="w-full rounded-xl border border-red-900 py-3 text-sm font-bold text-red-400">
+      <button onClick={() => setConfirmWipe(true)} className="w-full rounded-xl border border-red-900 py-3 text-sm font-bold text-red-400">
         Apagar todos os dados
       </button>
+
+      <ConfirmDialog
+        open={confirmWipe}
+        title="Apagar TUDO?"
+        description={
+          <>
+            {counts?.ex ?? 0} exercícios • {counts?.rt ?? 0} rotinas • {counts?.ws ?? 0} sessões serão apagados.
+            <br />
+            Exporte o backup antes!
+            <br />
+            <span className="text-red-300">Não dá pra desfazer.</span>
+          </>
+        }
+        confirmLabel="Apagar tudo mesmo assim"
+        onConfirm={wipe}
+        onClose={() => setConfirmWipe(false)}
+      />
     </div>
   )
 }
