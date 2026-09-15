@@ -53,6 +53,11 @@ export default function Home() {
     await db.routines.delete(id)
   }
 
+  async function deleteSession(id: string) {
+    if (!confirm('Excluir este treino e todas as séries lançadas?')) return
+    await db.sessions.delete(id)
+  }
+
   if (seeding) return <p className="text-zinc-400">Carregando...</p>
 
   return (
@@ -130,16 +135,25 @@ export default function Home() {
       <section className="space-y-2">
         <h2 className="text-base font-bold">Últimos treinos</h2>
         {(sessions ?? []).map((s) => (
-          <Link key={s.id} to={`/sessao/${s.id}`} className="block rounded-xl border border-zinc-800 bg-zinc-900 p-3">
-            <div className="flex justify-between text-sm">
-              <span className="font-semibold">{s.routineName}</span>
-              <span className="text-zinc-400">{new Date(s.startedAt).toLocaleDateString('pt-BR')}</span>
-            </div>
-            <p className="text-xs text-zinc-500">
-              {s.sets.filter((x) => x.done).length} séries •{' '}
-              {s.finishedAt ? `concluído` : 'em andamento'}
-            </p>
-          </Link>
+          <div key={s.id} className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 p-3">
+            <Link to={`/sessao/${s.id}`} className="min-w-0 flex-1">
+              <div className="flex justify-between gap-2 text-sm">
+                <span className="truncate font-semibold">{s.routineName}</span>
+                <span className="shrink-0 text-zinc-400">{new Date(s.startedAt).toLocaleDateString('pt-BR')}</span>
+              </div>
+              <p className="text-xs text-zinc-500">
+                {s.sets.filter((x) => x.done).length} séries •{' '}
+                {s.finishedAt ? `concluído` : 'em andamento'}
+              </p>
+            </Link>
+            <button
+              onClick={() => deleteSession(s.id)}
+              aria-label="Excluir treino"
+              className="shrink-0 rounded-lg bg-zinc-800 px-3 py-2 text-sm"
+            >
+              🗑
+            </button>
+          </div>
         ))}
       </section>
     </div>

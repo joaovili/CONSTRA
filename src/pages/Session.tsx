@@ -114,6 +114,12 @@ export default function SessionPage() {
     navigate('/')
   }
 
+  async function deleteThisSession() {
+    if (!confirm('Excluir este treino e todas as séries lançadas?')) return
+    await db.sessions.delete(ss.id)
+    navigate('/')
+  }
+
   const filteredExercises = (exercises ?? [])
     .filter((e) => !q || e.name.toLowerCase().includes(q.toLowerCase()))
     .slice(0, 15)
@@ -272,6 +278,12 @@ export default function SessionPage() {
           Reabrir treino
         </button>
       )}
+      <button
+        onClick={deleteThisSession}
+        className="w-full rounded-xl border border-red-900 py-3 text-sm font-bold text-red-400"
+      >
+        Excluir este treino
+      </button>
     </div>
   )
 }
