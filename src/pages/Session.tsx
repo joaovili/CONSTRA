@@ -1,8 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import RestTimer from '../components/RestTimer'
-import { db, getSettings } from '../lib/db'
+import { db, ensureSettings } from '../lib/db'
 import { detectPR, lastLoad, suggestNext } from '../lib/stats'
 import { SET_KIND_LABEL, uid, type SetEntry, type SetKind } from '../lib/types'
 
@@ -13,9 +13,13 @@ export default function SessionPage() {
   const exercises = useLiveQuery(() => db.exercises.toArray())
   const routines = useLiveQuery(() => db.routines.toArray())
   const allSessions = useLiveQuery(() => db.sessions.toArray())
-  const settings = useLiveQuery(() => getSettings())
+  const settings = useLiveQuery(() => db.settings.get('app'))
   const [q, setQ] = useState('')
   const [showAdd, setShowAdd] = useState(false)
+
+  useEffect(() => {
+    ensureSettings()
+  }, [])
 
   const exById = useMemo(() => new Map((exercises ?? []).map((e) => [e.id, e])), [exercises])
   const routine = useMemo(() => {

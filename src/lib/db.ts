@@ -20,7 +20,8 @@ class LogbookDB extends Dexie {
 
 export const db = new LogbookDB()
 
-export async function getSettings(): Promise<AppSettings> {
+/** Cria o registro de settings se não existir. Chamar em useEffect/boot — NUNCA dentro de useLiveQuery. */
+export async function ensureSettings(): Promise<AppSettings> {
   const existing = await db.settings.get('app')
   if (existing) return existing
   const fresh: AppSettings = {

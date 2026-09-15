@@ -1,11 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useRef, useState } from 'react'
-import { db, getSettings } from '../lib/db'
+import { useEffect, useRef, useState } from 'react'
+import { db, ensureSettings } from '../lib/db'
 import { downloadFile, exportJSON, importJSON, sessionsToCSV } from '../lib/backup'
 import { isIOS, isStandalone } from '../components/Layout'
 
 export default function Settings() {
-  const settings = useLiveQuery(() => getSettings())
+  const settings = useLiveQuery(() => db.settings.get('app'))
   const counts = useLiveQuery(async () => ({
     ex: await db.exercises.count(),
     rt: await db.routines.count(),
@@ -14,6 +14,10 @@ export default function Settings() {
   const sessions = useLiveQuery(() => db.sessions.toArray())
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    ensureSettings()
+  }, [])
 
   async function doExport() {
     const json = await exportJSON()
