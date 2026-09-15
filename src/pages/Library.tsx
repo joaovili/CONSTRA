@@ -2,27 +2,55 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db } from '../lib/db'
-import type { Equipment, MuscleGroup } from '../lib/types'
+import type { Equipment, Exercise, MuscleGroup } from '../lib/types'
 import { uid } from '../lib/types'
 
 const MUSCLES: MuscleGroup[] = ['Peito', 'Costas', 'Pernas', 'Ombros', 'Bíceps', 'Tríceps', 'Core', 'Glúteos', 'Corpo todo']
 const EQUIPS: Equipment[] = ['Barra', 'Haltere', 'Máquina', 'Cabo', 'Peso corporal', 'Kettlebell', 'Outro']
 
+function ExerciseRow({
+  exercise,
+  showMuscle,
+  onDelete,
+}: {
+  exercise: Exercise
+  showMuscle?: boolean
+  onDelete: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 p-3">
+      <div>
+        <p className="font-semibold leading-tight">{exercise.name}</p>
+        <p className="text-xs text-zinc-500">
+          {showMuscle ? `${exercise.muscleGroup} • ` : ''}
+          {exercise.equipment}
+          {exercise.unilateral ? ' • unilateral' : ''}
+        </p>
+      </div>
+      <button onClick={onDelete} aria-label={`Excluir ${exercise.name}`} className="rounded-lg bg-zinc-800 px-2 py-1 text-sm">
+        🗑
+      </button>
+    </div>
+  )
+}
+
 export default function Library() {
-  const exercises = useLiveQuery(() => db.exercises.orderBy('name').toArray())
+  const exercises = useLiveQuery(() => db.exercises.orderBy('name').toArray(), [], [])
   const [q, setQ] = useState('')
-  const [muscle, setMuscle] = useState<string>('Todas')
   const [name, setName] = useState('')
   const [mg, setMg] = useState<MuscleGroup>('Peito')
   const [eq, setEq] = useState<Equipment>('Haltere')
   const [uni, setUni] = useState(false)
   const [pendingId, setPendingId] = useState<string | null>(null)
 
-  const filtered = (exercises ?? []).filter((e) => {
-    if (muscle !== 'Todas' && e.muscleGroup !== muscle) return false
-    if (q && !e.name.toLowerCase().includes(q.toLowerCase())) return false
-    return true
-  })
+  const query = q.trim().toLowerCase()
+  // Com busca: lista corrida filtrada. Sem busca: seções por grupo muscular.
+  const searched = query ? exercises.filter((e) => e.name.toLowerCase().includes(query)) : null
+  const sections = query
+    ? []
+    : MUSCLES.map((m) => ({ muscle: m, items: exercises.filter((e) => e.muscleGroup === m) })).filter(
+        (s) => s.items.length > 0,
+      )
 
   async function create() {
     const n = name.trim()
@@ -50,34 +78,30 @@ export default function Library() {
         className="min-h-[48px] w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 outline-none placeholder:text-zinc-600 focus:border-lime-400"
       />
 
-      <div className="flex flex-wrap gap-2">
-        {['Todas', ...MUSCLES].map((m) => (
-          <button
-            key={m}
-            onClick={() => setMuscle(m)}
-            className={`rounded-xl px-4 py-2.5 text-sm font-bold ${muscle === m ? 'bg-lime-400 text-black' : 'bg-zinc-900 text-zinc-400'}`}
-          >
-            {m}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-2">
-        {filtered.map((e) => (
-          <div key={e.id} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 p-3">
-            <div>
-              <p className="font-semibold leading-tight">{e.name}</p>
-              <p className="text-xs text-zinc-500">
-                {e.muscleGroup} • {e.equipment}
-                {e.unilateral ? ' • unilateral' : ''}
-              </p>
-            </div>
-            <button onClick={() => setPendingId(e.id)} className="rounded-lg bg-zinc-800 px-2 py-1 text-sm">
-              🗑
-            </button>
+      <div className="space-y-4">
+        {query ? (
+          <div className="space-y-2">
+            {(searched ?? []).map((e) => (
+              <ExerciseRow key={e.id} exercise={e} showMuscle onDelete={() => setPendingId(e.id)} />
+            ))}
+            {searched?.length === 0 && <p className="text-sm text-zinc-500">Nada encontrado.</p>}
           </div>
-        ))}
-        {filtered.length === 0 && <p className="text-sm text-zinc-500">Nada encontrado.</p>}
+        ) : (
+          sections.map((s) => (
+            <section key={s.muscle}>
+              <div className="sticky top-0 z-[5] -mx-4 bg-zinc-950/95 px-4 py-2 backdrop-blur">
+                <p className="text-xs font-extrabold tracking-widest text-lime-300 uppercase">
+                  {s.muscle} <span className="text-zinc-500">• {s.items.length}</span>
+                </p>
+              </div>
+              <div className="mt-1 space-y-2">
+                {s.items.map((e) => (
+                  <ExerciseRow key={e.id} exercise={e} onDelete={() => setPendingId(e.id)} />
+                ))}
+              </div>
+            </section>
+          ))
+        )}
       </div>
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
