@@ -12,16 +12,16 @@ export default function App() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/biblioteca" element={<Library />} />
-          <Route path="/rotina/:id" element={<RoutineDetail />} />
-          <Route path="/sessao/:id" element={<SessionPage />} />
-          <Route path="/progresso" element={<Progress />} />
-          <Route path="/ajustes" element={<Settings />} />
-        </Routes>
-      </Layout>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/biblioteca" element={<Library />} />
+            <Route path="/rotina/:id" element={<RoutineDetail />} />
+            <Route path="/sessao/:id" element={<SessionPage />} />
+            <Route path="/progresso" element={<Progress />} />
+            <Route path="/ajustes" element={<Settings />} />
+          </Routes>
+        </Layout>
       </ErrorBoundary>
     </BrowserRouter>
   )

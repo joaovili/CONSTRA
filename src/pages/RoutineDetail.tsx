@@ -2,52 +2,57 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { db } from '../lib/db'
+import type { Routine, RoutineItem } from '../lib/types'
 
+/** Loader: só renderiza a view com a rotina já carregada (sem alias, sem TDZ). */
 export default function RoutineDetail() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const routine = useLiveQuery(() => (id ? db.routines.get(id) : undefined), [id])
-  const exercises = useLiveQuery(() => db.exercises.orderBy('name').toArray())
+
+  if (!routine) return <p className="text-zinc-400">Carregando...</p>
+  return <RoutineView key={routine.id} routine={routine} />
+}
+
+function RoutineView({ routine }: { routine: Routine }) {
+  const navigate = useNavigate()
+  const exercises = useLiveQuery(() => db.exercises.orderBy('name').toArray(), [], [])
   const [q, setQ] = useState('')
   const [name, setName] = useState('')
 
-  const exById = new Map((exercises ?? []).map((e) => [e.id, e]))
+  const exById = new Map(exercises.map((e) => [e.id, e]))
+  const filtered = exercises
+    .filter((e) => !q || e.name.toLowerCase().includes(q.toLowerCase()))
+    .slice(0, 20)
 
-  if (!routine) return <p className="text-zinc-400">Carregando...</p>
-  const rt = routine
-
-  const filtered = (exercises ?? []).filter((e) => !q || e.name.toLowerCase().includes(q.toLowerCase())).slice(0, 20)
+  async function save(items: RoutineItem[]) {
+    await db.routines.update(routine.id, { items, updatedAt: Date.now() })
+  }
 
   async function saveName() {
     const n = name.trim()
     if (!n) return
-    await db.routines.update(rt.id, { name: n, updatedAt: Date.now() })
+    await db.routines.update(routine.id, { name: n, updatedAt: Date.now() })
     setName('')
   }
 
   async function addExercise(exerciseId: string) {
-    await db.routines.update(rt.id, {
-      items: [...rt.items, { exerciseId, targetSets: 3, targetReps: '10' }],
-      updatedAt: Date.now(),
-    })
+    await save([...routine.items, { exerciseId, targetSets: 3, targetReps: '10' }])
   }
 
-  async function updateItem(idx: number, patch: Partial<{ targetSets: number; targetReps: string; note: string }>) {
-    const items = rt.items.map((it, i) => (i === idx ? { ...it, ...patch } : it))
-    await db.routines.update(rt.id, { items, updatedAt: Date.now() })
+  async function updateItem(idx: number, patch: Partial<RoutineItem>) {
+    await save(routine.items.map((it, i) => (i === idx ? { ...it, ...patch } : it)))
   }
 
   async function removeItem(idx: number) {
-    const items = rt.items.filter((_, i) => i !== idx)
-    await db.routines.update(rt.id, { items, updatedAt: Date.now() })
+    await save(routine.items.filter((_, i) => i !== idx))
   }
 
   async function move(idx: number, dir: -1 | 1) {
-    const items = [...rt.items]
+    const items = [...routine.items]
     const j = idx + dir
     if (j < 0 || j >= items.length) return
     ;[items[idx], items[j]] = [items[j], items[idx]]
-    await db.routines.update(rt.id, { items, updatedAt: Date.now() })
+    await save(items)
   }
 
   return (
@@ -55,7 +60,7 @@ export default function RoutineDetail() {
       <button onClick={() => navigate(-1)} className="text-sm text-zinc-400">
         ← Voltar
       </button>
-      <h1 className="text-2xl font-extrabold">{rt.name}</h1>
+      <h1 className="text-2xl font-extrabold">{routine.name}</h1>
 
       <div className="flex gap-2">
         <input
@@ -70,7 +75,7 @@ export default function RoutineDetail() {
       </div>
 
       <div className="space-y-2">
-        {rt.items.map((it, idx) => {
+        {routine.items.map((it, idx) => {
           const ex = exById.get(it.exerciseId)
           return (
             <div key={idx} className="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
@@ -82,9 +87,15 @@ export default function RoutineDetail() {
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => move(idx, -1)} className="rounded bg-zinc-800 px-2 py-1">↑</button>
-                  <button onClick={() => move(idx, 1)} className="rounded bg-zinc-800 px-2 py-1">↓</button>
-                  <button onClick={() => removeItem(idx)} className="rounded bg-zinc-800 px-2 py-1">🗑</button>
+                  <button onClick={() => move(idx, -1)} className="rounded bg-zinc-800 px-2 py-1">
+                    ↑
+                  </button>
+                  <button onClick={() => move(idx, 1)} className="rounded bg-zinc-800 px-2 py-1">
+                    ↓
+                  </button>
+                  <button onClick={() => removeItem(idx)} className="rounded bg-zinc-800 px-2 py-1">
+                    🗑
+                  </button>
                 </div>
               </div>
               <div className="mt-2 flex gap-2">
@@ -113,7 +124,7 @@ export default function RoutineDetail() {
             </div>
           )
         })}
-        {rt.items.length === 0 && (
+        {routine.items.length === 0 && (
           <p className="rounded-xl border border-dashed border-zinc-800 p-4 text-center text-sm text-zinc-500">
             Rotina vazia. Adicione exercícios abaixo.
           </p>

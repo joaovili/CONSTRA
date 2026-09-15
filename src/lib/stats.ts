@@ -6,20 +6,22 @@ export function epley1RM(weight: number, reps: number): number {
   return weight * (1 + reps / 30)
 }
 
+export interface HistoryPoint {
+  date: number
+  maxWeight: number
+  maxReps: number
+  volume: number
+  best1RM: number
+  sets: number
+}
+
 export interface ExerciseHistory {
   exerciseId: string
-  sessions: Array<{
-    date: number
-    maxWeight: number
-    maxReps: number
-    volume: number
-    best1RM: number
-    sets: number
-  }>
+  sessions: HistoryPoint[]
 }
 
 export function historyForExercise(sessions: WorkoutSession[], exerciseId: string): ExerciseHistory {
-  const perSession = new Map<number, { maxWeight: number; maxReps: number; volume: number; best1RM: number; sets: number; date: number }>()
+  const perSession = new Map<number, HistoryPoint>()
   const sorted = [...sessions].sort((a, b) => a.startedAt - b.startedAt)
   for (const s of sorted) {
     const sets = s.sets.filter((x) => x.exerciseId === exerciseId && x.done && x.kind !== 'warmup')
@@ -52,7 +54,7 @@ export function lastLoad(sessions: WorkoutSession[], exerciseId: string): { weig
   return null
 }
 
-/** Sugestão simples de progressão: repete última, sugere +1 rep ou +menor incremento */
+/** Última marca no exercício + dica de progressão (+1 rep ou +carga). */
 export function suggestNext(
   sessions: WorkoutSession[],
   exerciseId: string,
@@ -60,10 +62,9 @@ export function suggestNext(
   const hist = historyForExercise(sessions, exerciseId).sessions
   if (hist.length === 0) return null
   const last = hist[hist.length - 1]
-  // heurística: se bateu topo do range com folga, sugere +2.5kg, senão +1 rep
   return {
     weight: last.maxWeight,
-    reps: last.maxReps + 1,
+    reps: last.maxReps,
     hint: `Última: ${last.maxWeight} × ${last.maxReps}. Tente ${last.maxWeight} × ${last.maxReps + 1} ou +2,5 de carga.`,
   }
 }

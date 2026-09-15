@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db, ensureSettings } from '../lib/db'
 import { downloadFile, exportJSON, importJSON, sessionsToCSV } from '../lib/backup'
-import { isIOS, isStandalone } from '../components/Layout'
+import { isIOS, isStandalone } from '../lib/platform'
 
 export default function Settings() {
   const settings = useLiveQuery(() => db.settings.get('app'))

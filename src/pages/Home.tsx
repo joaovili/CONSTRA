@@ -1,11 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db } from '../lib/db'
 import { seedIfEmpty } from '../lib/seeds'
 import { uid, type Routine } from '../lib/types'
-import { useEffect } from 'react'
 
 interface PendingDelete {
   kind: 'session' | 'routine'

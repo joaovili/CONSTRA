@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { db } from '../lib/db'
-import { epley1RM, historyForExercise } from '../lib/stats'
+import { historyForExercise } from '../lib/stats'
 
 type Metric = 'maxWeight' | 'volume' | 'best1RM'
 
@@ -36,12 +36,8 @@ export default function Progress() {
     () =>
       (hist?.sessions ?? []).map((h) => ({
         data: new Date(h.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-        full: new Date(h.date).toLocaleDateString('pt-BR'),
-        carga: h.maxWeight,
-        volume: Math.round(h.volume),
-        rm: Math.round(epley1RM(h.maxWeight, h.maxReps) * 10) / 10,
         maxWeight: h.maxWeight,
-        volumeRaw: h.volume,
+        volume: Math.round(h.volume),
         best1RM: Math.round(h.best1RM * 10) / 10,
       })),
     [hist],
@@ -120,7 +116,7 @@ export default function Progress() {
                     />
                     <Line
                       type="monotone"
-                      dataKey={metric === 'maxWeight' ? 'maxWeight' : metric === 'volume' ? 'volumeRaw' : 'best1RM'}
+                      dataKey={metric}
                       stroke="#a3e635"
                       strokeWidth={3}
                       dot={{ fill: '#a3e635', r: 4 }}

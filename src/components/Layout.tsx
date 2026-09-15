@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
+import { isIOS, isStandalone } from '../lib/platform'
 
 const TABS = [
   { to: '/', label: 'Treinos', icon: '🏋️', end: true },
@@ -8,17 +9,7 @@ const TABS = [
   { to: '/ajustes', label: 'Ajustes', icon: '⚙️' },
 ]
 
-export function isIOS() {
-  if (typeof navigator === 'undefined') return false
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-}
-
-export function isStandalone() {
-  if (typeof window === 'undefined') return false
-  return window.matchMedia('(display-mode: standalone)').matches || (navigator as unknown as { standalone?: boolean }).standalone === true
-}
-
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children }: { children: ReactNode }) {
   const [showInstall, setShowInstall] = useState(false)
 
   useEffect(() => {

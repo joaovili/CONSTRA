@@ -45,8 +45,19 @@ const EXERCISES: Array<Omit<Exercise, 'id' | 'createdAt'>> = [
   { name: 'Burpee', muscleGroup: 'Corpo todo', equipment: 'Peso corporal', unilateral: false, builtin: true },
 ]
 
-function routine(name: string, picks: Array<[string, number, string]>): Omit<Routine, 'id' | 'createdAt' | 'updatedAt'> & { _pickNames: Array<[string, number, string]> } {
-  return { name, items: [], builtin: true, _pickNames: picks }
+interface TemplatePick {
+  name: string
+  sets: number
+  reps: string
+}
+
+interface TemplateDef {
+  name: string
+  picks: TemplatePick[]
+}
+
+function pick(name: string, sets: number, reps: string): TemplatePick {
+  return { name, sets, reps }
 }
 
 export async function seedIfEmpty(): Promise<void> {
@@ -58,45 +69,55 @@ export async function seedIfEmpty(): Promise<void> {
   await db.exercises.bulkAdd(withIds)
 
   const byName = new Map(withIds.map((e) => [e.name.toLowerCase(), e.id]))
-  const templates = [
-    routine('Fullbody A', [
-      ['Agachamento livre', 4, '6-8'],
-      ['Supino reto barra', 3, '8-10'],
-      ['Remada curvada', 3, '8-10'],
-      ['Desenvolvimento haltere', 3, '10-12'],
-      ['Prancha', 3, '60s'],
-    ]),
-    routine('Fullbody B', [
-      ['Levantamento terra', 4, '5'],
-      ['Puxada frente', 3, '10-12'],
-      ['Supino inclinado haltere', 3, '8-12'],
-      ['Elevação lateral', 3, '12-15'],
-      ['Rosca direta barra', 2, '10-12'],
-    ]),
-    routine('Push / Pull / Legs — Push', [
-      ['Supino reto barra', 4, '6-8'],
-      ['Supino inclinado haltere', 3, '8-12'],
-      ['Crossover polia', 3, '12-15'],
-      ['Desenvolvimento militar', 3, '8-10'],
-      ['Tríceps corda', 3, '10-12'],
-    ]),
-    routine('Upper / Lower — Upper', [
-      ['Barra fixa', 4, '6-10'],
-      ['Supino reto barra', 4, '6-8'],
-      ['Remada unilateral (serrote)', 3, '10-12'],
-      ['Elevação lateral', 3, '12-15'],
-      ['Rosca alternada', 2, '10-12'],
-    ]),
+  const templates: TemplateDef[] = [
+    {
+      name: 'Fullbody A',
+      picks: [
+        pick('Agachamento livre', 4, '6-8'),
+        pick('Supino reto barra', 3, '8-10'),
+        pick('Remada curvada', 3, '8-10'),
+        pick('Desenvolvimento haltere', 3, '10-12'),
+        pick('Prancha', 3, '60s'),
+      ],
+    },
+    {
+      name: 'Fullbody B',
+      picks: [
+        pick('Levantamento terra', 4, '5'),
+        pick('Puxada frente', 3, '10-12'),
+        pick('Supino inclinado haltere', 3, '8-12'),
+        pick('Elevação lateral', 3, '12-15'),
+        pick('Rosca direta barra', 2, '10-12'),
+      ],
+    },
+    {
+      name: 'Push / Pull / Legs — Push',
+      picks: [
+        pick('Supino reto barra', 4, '6-8'),
+        pick('Supino inclinado haltere', 3, '8-12'),
+        pick('Crossover polia', 3, '12-15'),
+        pick('Desenvolvimento militar', 3, '8-10'),
+        pick('Tríceps corda', 3, '10-12'),
+      ],
+    },
+    {
+      name: 'Upper / Lower — Upper',
+      picks: [
+        pick('Barra fixa', 4, '6-10'),
+        pick('Supino reto barra', 4, '6-8'),
+        pick('Remada unilateral (serrote)', 3, '10-12'),
+        pick('Elevação lateral', 3, '12-15'),
+        pick('Rosca alternada', 2, '10-12'),
+      ],
+    },
   ]
 
   for (const t of templates) {
-    const items = t._pickNames
-      .map(([nm, sets, reps]) => {
-        const id = byName.get(nm.toLowerCase())
-        if (!id) return null
-        return { exerciseId: id, targetSets: sets, targetReps: reps }
-      })
-      .filter(Boolean) as Routine['items']
+    const items: Routine['items'] = []
+    for (const p of t.picks) {
+      const id = byName.get(p.name.toLowerCase())
+      if (id) items.push({ exerciseId: id, targetSets: p.sets, targetReps: p.reps })
+    }
     await db.routines.add({
       id: uid('rt_'),
       name: t.name,
