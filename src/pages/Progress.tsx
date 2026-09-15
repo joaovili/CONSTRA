@@ -24,7 +24,7 @@ export default function Progress() {
     [exercises, q],
   )
 
-  const activeId = selected ?? filtered[0]?.id
+  const activeId = filtered.some((e) => e.id === selected) ? selected : filtered[0]?.id
   const activeEx = (exercises ?? []).find((e) => e.id === activeId)
 
   const hist = useMemo(
@@ -63,16 +63,22 @@ export default function Progress() {
         className="min-h-[48px] w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 outline-none focus:border-lime-400"
       />
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {filtered.map((e) => (
-          <button
-            key={e.id}
-            onClick={() => setSelected(e.id)}
-            className={`shrink-0 rounded-full px-3 py-2 text-xs font-bold ${activeId === e.id ? 'bg-lime-400 text-black' : 'bg-zinc-900 text-zinc-300'}`}
-          >
-            {e.name}
-          </button>
-        ))}
+      <div className="space-y-2">
+        <label htmlFor="progress-exercise" className="text-xs font-bold tracking-wide text-zinc-500">
+          EXERCÍCIO
+        </label>
+        <select
+          id="progress-exercise"
+          value={activeId ?? ''}
+          onChange={(e) => setSelected(e.target.value)}
+          className="min-h-[52px] w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 text-base font-semibold outline-none focus:border-lime-400"
+        >
+          {filtered.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {!activeEx ? (

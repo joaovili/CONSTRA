@@ -50,12 +50,12 @@ export default function Library() {
         className="min-h-[48px] w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 outline-none placeholder:text-zinc-600 focus:border-lime-400"
       />
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex flex-wrap gap-2">
         {['Todas', ...MUSCLES].map((m) => (
           <button
             key={m}
             onClick={() => setMuscle(m)}
-            className={`shrink-0 rounded-full px-3 py-2 text-xs font-bold ${muscle === m ? 'bg-lime-400 text-black' : 'bg-zinc-900 text-zinc-400'}`}
+            className={`rounded-xl px-4 py-2.5 text-sm font-bold ${muscle === m ? 'bg-lime-400 text-black' : 'bg-zinc-900 text-zinc-400'}`}
           >
             {m}
           </button>
