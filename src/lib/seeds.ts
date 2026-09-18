@@ -1,5 +1,5 @@
 import { db } from './db'
-import type { Exercise, Routine } from './types'
+import type { Exercise } from './types'
 import { uid } from './types'
 
 const EXERCISES: Array<Omit<Exercise, 'id' | 'createdAt'>> = [
@@ -45,27 +45,12 @@ const EXERCISES: Array<Omit<Exercise, 'id' | 'createdAt'>> = [
   { name: 'Burpee', muscleGroup: 'Corpo todo', equipment: 'Peso corporal', unilateral: false, builtin: true },
 ]
 
-interface TemplatePick {
-  name: string
-  sets: number
-  reps: string
-}
-
-interface TemplateDef {
-  name: string
-  picks: TemplatePick[]
-}
-
-function pick(name: string, sets: number, reps: string): TemplatePick {
-  return { name, sets, reps }
-}
-
 let seedPromise: Promise<void> | null = null
 
 /**
- * Semeia os dados embutidos apenas uma vez na vida do banco.
- * O marcador em `meta` evita (a) duplicação quando o React StrictMode roda o
- * efeito 2x e (b) que os templates voltem depois de "Apagar todos os dados".
+ * Popula a biblioteca padrão de exercícios, uma única vez na vida do banco.
+ * O marcador em `meta` evita duplicação quando o React StrictMode roda o efeito 2x.
+ * Rotinas NÃO são semeadas: o usuário começa sem nenhuma rotina cadastrada.
  */
 export function seedIfEmpty(): Promise<void> {
   if (!seedPromise) seedPromise = runSeed()
@@ -73,80 +58,12 @@ export function seedIfEmpty(): Promise<void> {
 }
 
 async function runSeed(): Promise<void> {
-  await db.transaction('rw', db.exercises, db.routines, db.meta, async () => {
+  await db.transaction('rw', db.exercises, db.meta, async () => {
     if (await db.meta.get('seed')) return
-    if ((await db.exercises.count()) > 0) {
-      await db.meta.put({ id: 'seed', at: Date.now() })
-      return
+    if ((await db.exercises.count()) === 0) {
+      const now = Date.now()
+      await db.exercises.bulkAdd(EXERCISES.map((e) => ({ ...e, id: uid('ex_'), createdAt: now })))
     }
-    await insertBuiltins()
     await db.meta.put({ id: 'seed', at: Date.now() })
   })
-}
-
-async function insertBuiltins(): Promise<void> {
-  const now = Date.now()
-
-  const withIds = EXERCISES.map((e) => ({ ...e, id: uid('ex_'), createdAt: now }))
-  await db.exercises.bulkAdd(withIds)
-
-  const byName = new Map(withIds.map((e) => [e.name.toLowerCase(), e.id]))
-  const templates: TemplateDef[] = [
-    {
-      name: 'Fullbody A',
-      picks: [
-        pick('Agachamento livre', 4, '6-8'),
-        pick('Supino reto barra', 3, '8-10'),
-        pick('Remada curvada', 3, '8-10'),
-        pick('Desenvolvimento haltere', 3, '10-12'),
-        pick('Prancha', 3, '60s'),
-      ],
-    },
-    {
-      name: 'Fullbody B',
-      picks: [
-        pick('Levantamento terra', 4, '5'),
-        pick('Puxada frente', 3, '10-12'),
-        pick('Supino inclinado haltere', 3, '8-12'),
-        pick('Elevação lateral', 3, '12-15'),
-        pick('Rosca direta barra', 2, '10-12'),
-      ],
-    },
-    {
-      name: 'Push / Pull / Legs — Push',
-      picks: [
-        pick('Supino reto barra', 4, '6-8'),
-        pick('Supino inclinado haltere', 3, '8-12'),
-        pick('Crossover polia', 3, '12-15'),
-        pick('Desenvolvimento militar', 3, '8-10'),
-        pick('Tríceps corda', 3, '10-12'),
-      ],
-    },
-    {
-      name: 'Upper / Lower — Upper',
-      picks: [
-        pick('Barra fixa', 4, '6-10'),
-        pick('Supino reto barra', 4, '6-8'),
-        pick('Remada unilateral (serrote)', 3, '10-12'),
-        pick('Elevação lateral', 3, '12-15'),
-        pick('Rosca alternada', 2, '10-12'),
-      ],
-    },
-  ]
-
-  for (const t of templates) {
-    const items: Routine['items'] = []
-    for (const p of t.picks) {
-      const id = byName.get(p.name.toLowerCase())
-      if (id) items.push({ exerciseId: id, targetSets: p.sets, targetReps: p.reps })
-    }
-    await db.routines.add({
-      id: uid('rt_'),
-      name: t.name,
-      items,
-      builtin: true,
-      createdAt: now,
-      updatedAt: now,
-    })
-  }
 }

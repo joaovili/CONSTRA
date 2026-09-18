@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Play, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { CheckCircle2, Play, Plus, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db } from '../lib/db'
@@ -18,11 +18,20 @@ export default function Home() {
   const sessions = useLiveQuery(() => db.sessions.orderBy('startedAt').reverse().limit(5).toArray())
   const [seeding, setSeeding] = useState(true)
   const [newName, setNewName] = useState('')
+  const [nameError, setNameError] = useState('')
+  const nameRef = useRef<HTMLInputElement>(null)
+  const [created, setCreated] = useState<{ id: string; name: string } | null>(null)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
 
   useEffect(() => {
     seedIfEmpty().finally(() => setSeeding(false))
   }, [])
+
+  useEffect(() => {
+    if (!created) return
+    const timer = setTimeout(() => setCreated(null), 5000)
+    return () => clearTimeout(timer)
+  }, [created])
 
   const totalSessions = useLiveQuery(() => db.sessions.count(), [], 0)
 
@@ -47,12 +56,18 @@ export default function Home() {
   }
 
   async function createRoutine() {
-    const name = newName.trim() || `Treino ${((routines?.length ?? 0) + 1)}`
+    const name = newName.trim()
+    if (!name) {
+      setNameError('Dê um nome para a rotina para continuar.')
+      nameRef.current?.focus()
+      return
+    }
     const id = uid('rt_')
     const now = Date.now()
     await db.routines.add({ id, name, items: [], createdAt: now, updatedAt: now })
     setNewName('')
-    navigate(`/rotina/${id}`)
+    setNameError('')
+    setCreated({ id, name })
   }
 
   async function confirmPendingDelete() {
@@ -98,15 +113,28 @@ export default function Home() {
 
         <div className="flex gap-2">
           <input
+            ref={nameRef}
             value={newName}
-            onChange={(e) => setNewName(e.target.value)}
+            onChange={(e) => {
+              setNewName(e.target.value)
+              if (nameError) setNameError('')
+            }}
             placeholder="Nome da nova rotina (ex: Push A)"
-            className="min-h-[48px] flex-1 rounded-xl border border-zinc-800 bg-zinc-900 px-3 text-base outline-none placeholder:text-zinc-600 focus:border-lime-400"
+            aria-label="Nome da nova rotina"
+            aria-invalid={nameError ? true : undefined}
+            className={`min-h-[48px] flex-1 rounded-xl border bg-zinc-900 px-3 text-base outline-none placeholder:text-zinc-600 focus:border-lime-400 ${
+              nameError ? 'border-red-500' : 'border-zinc-800'
+            }`}
           />
           <button onClick={createRoutine} className="rounded-xl bg-zinc-100 px-4 font-bold text-black">
             Criar
           </button>
         </div>
+        {nameError && (
+          <p role="alert" className="text-sm font-medium text-red-400">
+            {nameError}
+          </p>
+        )}
 
         <div className="space-y-2">
           {(routines ?? []).map((r) => (
@@ -144,7 +172,7 @@ export default function Home() {
           ))}
           {(routines?.length ?? 0) === 0 && (
             <p className="rounded-xl border border-dashed border-zinc-800 p-4 text-center text-sm text-zinc-500">
-              Nenhuma rotina ainda. Crie uma acima ou use os templates que já vieram instalados.
+              Nenhuma rotina ainda. Dê um nome acima e toque em "Criar" para montar a sua.
             </p>
           )}
         </div>
@@ -174,6 +202,34 @@ export default function Home() {
           </div>
         ))}
       </section>
+
+      {created && (
+        <div
+          role="status"
+          className="fixed inset-x-0 bottom-20 z-20 mx-auto flex max-w-md items-center gap-3 px-4"
+        >
+          <div className="flex flex-1 items-center gap-3 rounded-2xl border border-lime-500/30 bg-zinc-900 p-3 shadow-lg">
+            <CheckCircle2 className="size-5 shrink-0 text-lime-300" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold">{created.name}</p>
+              <p className="text-xs text-zinc-400">Rotina criada com sucesso.</p>
+            </div>
+            <Link
+              to={`/rotina/${created.id}`}
+              className="shrink-0 rounded-lg bg-lime-400 px-3 py-2 text-xs font-extrabold text-black"
+            >
+              Exercícios
+            </Link>
+            <button
+              onClick={() => setCreated(null)}
+              aria-label="Fechar aviso"
+              className="shrink-0 rounded-lg bg-zinc-800 p-2 text-zinc-400"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={pendingDelete !== null}

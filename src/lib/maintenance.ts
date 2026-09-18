@@ -13,7 +13,7 @@ const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ')
 
 async function runRepair(): Promise<void> {
   await db.transaction('rw', [db.exercises, db.routines, db.sessions, db.meta], async () => {
-    if (await db.meta.get('repair-v1')) return
+    if (await db.meta.get('repair-v2')) return
 
     const exercises = await db.exercises.toArray()
     const byKey = new Map<string, Exercise[]>()
@@ -60,35 +60,18 @@ async function runRepair(): Promise<void> {
       await db.exercises.bulkDelete(toDelete)
     }
 
-    const routines = await db.routines.toArray()
-    const builtins = new Map<string, Routine[]>()
-    for (const r of routines) {
-      if (!r.builtin) continue
-      const list = builtins.get(norm(r.name))
-      if (list) list.push(r)
-      else builtins.set(norm(r.name), [r])
-    }
-
-    const routineRemap = new Map<string, string>()
-    const routinesToDelete: string[] = []
-    for (const list of builtins.values()) {
-      if (list.length < 2) continue
-      list.sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id))
-      for (const dup of list.slice(1)) {
-        routineRemap.set(dup.id, list[0].id)
-        routinesToDelete.push(dup.id)
-      }
-    }
-
-    if (routinesToDelete.length > 0) {
+    // O usuário deve começar sem rotinas: remove os templates embutidos que
+    // vinham semeados em versões anteriores (rotinas criadas por ele ficam).
+    const builtinRoutines = await db.routines.filter((r) => r.builtin === true).toArray()
+    if (builtinRoutines.length > 0) {
+      const ids = new Set(builtinRoutines.map((r) => r.id))
       for (const s of await db.sessions.toArray()) {
-        const to = s.routineId ? routineRemap.get(s.routineId) : undefined
-        if (to && to !== s.routineId) await db.sessions.update(s.id, { routineId: to })
+        if (s.routineId && ids.has(s.routineId)) await db.sessions.update(s.id, { routineId: undefined })
       }
-      await db.routines.bulkDelete(routinesToDelete)
+      await db.routines.bulkDelete(builtinRoutines.map((r) => r.id))
     }
 
-    await db.meta.put({ id: 'repair-v1', at: Date.now() })
+    await db.meta.put({ id: 'repair-v2', at: Date.now() })
   })
 }
 
