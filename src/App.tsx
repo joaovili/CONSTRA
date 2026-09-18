@@ -18,6 +18,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/biblioteca" element={<Library />} />
+              <Route path="/rotina/nova" element={<RoutineDetail />} />
               <Route path="/rotina/:id" element={<RoutineDetail />} />
               <Route path="/sessao/:id" element={<SessionPage />} />
               <Route path="/progresso" element={<Progress />} />

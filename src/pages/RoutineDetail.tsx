@@ -1,85 +1,118 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { db } from '../lib/db'
 import type { Routine, RoutineItem } from '../lib/types'
+import { uid } from '../lib/types'
 
-/** Loader: só renderiza a view com a rotina já carregada (sem alias, sem TDZ). */
 export default function RoutineDetail() {
   const { id } = useParams()
-  const routine = useLiveQuery(() => (id ? db.routines.get(id) : undefined), [id])
+  const isNew = !id || id === 'nova'
+  const routine = useLiveQuery(() => (!isNew && id ? db.routines.get(id) : undefined), [id, isNew])
 
+  if (isNew) return <RoutineEditor />
   if (!routine) return <p className="text-zinc-400">Carregando...</p>
-  return <RoutineView key={routine.id} routine={routine} />
+  return <RoutineEditor key={routine.id} routine={routine} />
 }
 
-function RoutineView({ routine }: { routine: Routine }) {
+/** Mesma tela para criar (sem `routine`) e editar (com `routine`). */
+function RoutineEditor({ routine }: { routine?: Routine }) {
   const navigate = useNavigate()
+  const isNew = !routine
   const exercises = useLiveQuery(() => db.exercises.orderBy('name').toArray(), [], [])
+  const [name, setName] = useState(routine?.name ?? '')
+  const [items, setItems] = useState<RoutineItem[]>(routine?.items ?? [])
+  const [nameError, setNameError] = useState('')
   const [q, setQ] = useState('')
-  const [name, setName] = useState('')
 
   const exById = new Map(exercises.map((e) => [e.id, e]))
-  const filtered = exercises
-    .filter((e) => !q || e.name.toLowerCase().includes(q.toLowerCase()))
-    .slice(0, 20)
+  const filtered = exercises.filter((e) => !q || e.name.toLowerCase().includes(q.toLowerCase())).slice(0, 20)
 
-  async function save(items: RoutineItem[]) {
-    await db.routines.update(routine.id, { items, updatedAt: Date.now() })
+  function applyItems(next: RoutineItem[]) {
+    setItems(next)
+    if (routine) void db.routines.update(routine.id, { items: next, updatedAt: Date.now() })
   }
 
-  async function saveName() {
-    const n = name.trim()
-    if (!n) return
-    await db.routines.update(routine.id, { name: n, updatedAt: Date.now() })
-    setName('')
+  function addExercise(exerciseId: string) {
+    const last = items[items.length - 1]
+    applyItems([
+      ...items,
+      { exerciseId, targetSets: last?.targetSets ?? 3, targetReps: last?.targetReps ?? '10' },
+    ])
   }
 
-  async function addExercise(exerciseId: string) {
-    await save([...routine.items, { exerciseId, targetSets: 3, targetReps: '10' }])
+  function updateItem(idx: number, patch: Partial<RoutineItem>) {
+    applyItems(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)))
   }
 
-  async function updateItem(idx: number, patch: Partial<RoutineItem>) {
-    await save(routine.items.map((it, i) => (i === idx ? { ...it, ...patch } : it)))
+  function removeItem(idx: number) {
+    applyItems(items.filter((_, i) => i !== idx))
   }
 
-  async function removeItem(idx: number) {
-    await save(routine.items.filter((_, i) => i !== idx))
-  }
-
-  async function move(idx: number, dir: -1 | 1) {
-    const items = [...routine.items]
+  function move(idx: number, dir: -1 | 1) {
     const j = idx + dir
     if (j < 0 || j >= items.length) return
-    ;[items[idx], items[j]] = [items[j], items[idx]]
-    await save(items)
+    const next = [...items]
+    ;[next[idx], next[j]] = [next[j], next[idx]]
+    applyItems(next)
+  }
+
+  async function finish() {
+    const n = name.trim()
+    if (!n) {
+      setNameError('Dê um nome para a rotina para continuar.')
+      return
+    }
+    setNameError('')
+    if (routine) {
+      await db.routines.update(routine.id, { name: n, items, updatedAt: Date.now() })
+      navigate('/', { state: { flash: `Rotina "${n}" salva` } })
+    } else {
+      const now = Date.now()
+      await db.routines.add({ id: uid('rt_'), name: n, items, createdAt: now, updatedAt: now })
+      navigate('/', { state: { flash: `Rotina "${n}" criada` } })
+    }
   }
 
   return (
     <div className="space-y-4">
-      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-sm text-zinc-400">
+      <button onClick={() => navigate('/')} className="inline-flex items-center gap-1 text-sm text-zinc-400">
         <ArrowLeft className="size-4" /> Voltar
       </button>
-      <h1 className="text-2xl font-extrabold">{routine.name}</h1>
+      <h1 className="text-2xl font-extrabold">{isNew ? 'Nova rotina' : 'Editar rotina'}</h1>
 
-      <div className="flex gap-2">
+      <div>
+        <label htmlFor="routine-name" className="text-xs font-bold tracking-wide text-zinc-500">
+          NOME
+        </label>
         <input
+          id="routine-name"
           value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Renomear rotina"
-          className="min-h-[48px] flex-1 rounded-xl border border-zinc-800 bg-zinc-900 px-3 outline-none focus:border-lime-400"
+          onChange={(e) => {
+            setName(e.target.value)
+            if (nameError) setNameError('')
+          }}
+          onBlur={() => routine && name.trim() && db.routines.update(routine.id, { name: name.trim(), updatedAt: Date.now() })}
+          placeholder="ex: Push A"
+          aria-invalid={nameError ? true : undefined}
+          className={`mt-1 min-h-[48px] w-full rounded-xl border bg-zinc-900 px-3 outline-none focus:border-lime-400 ${
+            nameError ? 'border-red-500' : 'border-zinc-800'
+          }`}
         />
-        <button onClick={saveName} className="rounded-xl bg-zinc-100 px-4 font-bold text-black">
-          OK
-        </button>
+        {nameError && (
+          <p role="alert" className="mt-1 text-sm font-medium text-red-400">
+            {nameError}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
-        {routine.items.map((it, idx) => {
+        <p className="text-xs font-bold tracking-wide text-zinc-500">EXERCÍCIOS</p>
+        {items.map((it, idx) => {
           const ex = exById.get(it.exerciseId)
           return (
-            <div key={idx} className="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
+            <div key={`${idx}-${it.exerciseId}`} className="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-bold">{ex?.name ?? '(exercício removido)'}</p>
@@ -114,15 +147,7 @@ function RoutineView({ routine }: { routine: Routine }) {
               <div className="mt-2 flex gap-2">
                 <label className="flex flex-1 items-center gap-2 text-sm">
                   Séries
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={20}
-                    value={it.targetSets}
-                    onChange={(e) => updateItem(idx, { targetSets: Number(e.target.value) || 1 })}
-                    className="min-h-[44px] w-full rounded-lg bg-zinc-950 px-2"
-                  />
+                  <SetsInput value={it.targetSets} onCommit={(n) => updateItem(idx, { targetSets: n })} />
                 </label>
                 <label className="flex flex-1 items-center gap-2 text-sm">
                   Reps
@@ -137,9 +162,9 @@ function RoutineView({ routine }: { routine: Routine }) {
             </div>
           )
         })}
-        {routine.items.length === 0 && (
+        {items.length === 0 && (
           <p className="rounded-xl border border-dashed border-zinc-800 p-4 text-center text-sm text-zinc-500">
-            Rotina vazia. Adicione exercícios abaixo.
+            Nenhum exercício ainda. Adicione abaixo.
           </p>
         )}
       </div>
@@ -163,6 +188,7 @@ function RoutineView({ routine }: { routine: Routine }) {
               <span className="text-lime-300">+ Add</span>
             </button>
           ))}
+          {filtered.length === 0 && <p className="px-1 text-sm text-zinc-500">Nada encontrado.</p>}
         </div>
         <Link
           to="/biblioteca"
@@ -171,6 +197,38 @@ function RoutineView({ routine }: { routine: Routine }) {
           Não achou? Criar novo exercício <ArrowRight className="size-4" />
         </Link>
       </div>
+
+      <div className="sticky bottom-0 -mx-4 mt-2 border-t border-zinc-800 bg-zinc-950/95 px-4 py-3 backdrop-blur">
+        <button onClick={finish} className="w-full rounded-xl bg-lime-400 py-3 font-extrabold text-black">
+          {isNew ? 'Criar rotina' : 'Concluir'}
+        </button>
+      </div>
     </div>
+  )
+}
+
+/** Input de séries que permite limpar o campo antes de digitar o valor. */
+function SetsInput({ value, onCommit }: { value: number; onCommit: (n: number) => void }) {
+  const [text, setText] = useState(String(value))
+
+  useEffect(() => {
+    setText(String(value))
+  }, [value])
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      value={text}
+      onChange={(e) => {
+        const digits = e.target.value.replace(/\D/g, '').slice(0, 2)
+        setText(digits)
+        if (digits) onCommit(Number(digits))
+      }}
+      onBlur={() => setText(String(value || 1))}
+      aria-label="Séries"
+      className="min-h-[44px] w-full rounded-lg bg-zinc-950 px-2"
+    />
   )
 }
