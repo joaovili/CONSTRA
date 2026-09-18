@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Play, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -84,9 +85,9 @@ export default function Home() {
 
       <button
         onClick={() => startSession(undefined)}
-        className="w-full rounded-2xl bg-lime-400 py-4 text-base font-extrabold text-black active:scale-[0.99]"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime-400 py-4 text-base font-extrabold text-black active:scale-[0.99]"
       >
-        + Treino livre (sem rotina)
+        <Plus className="size-5" /> Treino livre (sem rotina)
       </button>
 
       <section className="space-y-3">
@@ -124,16 +125,20 @@ export default function Home() {
                   <Link to={`/rotina/${r.id}`} className="rounded-lg bg-zinc-800 px-3 py-2 text-sm font-semibold">
                     Editar
                   </Link>
-                  <button onClick={() => setPendingDelete({ kind: 'routine', id: r.id })} className="rounded-lg bg-zinc-800 px-3 py-2 text-sm">
-                    🗑
+                  <button
+                    onClick={() => setPendingDelete({ kind: 'routine', id: r.id })}
+                    aria-label="Excluir rotina"
+                    className="inline-flex items-center rounded-lg bg-zinc-800 px-3 py-2 text-sm"
+                  >
+                    <Trash2 className="size-4" />
                   </button>
                 </div>
               </div>
               <button
                 onClick={() => startSession(r)}
-                className="mt-3 w-full rounded-xl bg-lime-400/15 py-3 text-sm font-extrabold text-lime-300 active:bg-lime-400 active:text-black"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-lime-400/15 py-3 text-sm font-extrabold text-lime-300 active:bg-lime-400 active:text-black"
               >
-                ▶ Iniciar {r.name}
+                <Play className="size-4" /> Iniciar {r.name}
               </button>
             </div>
           ))}
@@ -162,9 +167,9 @@ export default function Home() {
             <button
               onClick={() => setPendingDelete({ kind: 'session', id: s.id })}
               aria-label="Excluir treino"
-              className="shrink-0 rounded-lg bg-zinc-800 px-3 py-2 text-sm"
+              className="inline-flex shrink-0 items-center rounded-lg bg-zinc-800 px-3 py-2 text-sm"
             >
-              🗑
+              <Trash2 className="size-4" />
             </button>
           </div>
         ))}

@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Lightbulb, Plus, Trash2, Trophy } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -117,8 +118,8 @@ function SessionView({ session }: { session: WorkoutSession }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <button onClick={() => navigate('/')} className="text-sm text-zinc-400">
-          ← Sair (salva auto)
+        <button onClick={() => navigate('/')} className="inline-flex items-center gap-1 text-sm text-zinc-400">
+          <ArrowLeft className="size-4" /> Sair (salva auto)
         </button>
         <span className="text-xs text-zinc-500">{new Date(session.startedAt).toLocaleString('pt-BR')}</span>
       </div>
@@ -150,8 +151,12 @@ function SessionView({ session }: { session: WorkoutSession }) {
                   aria-expanded={!isCollapsed}
                   className="min-w-0 flex-1 text-left"
                 >
-                  <p className="font-extrabold leading-tight">
-                    <span className="mr-1 inline-block w-4 text-zinc-500">{isCollapsed ? '▸' : '▾'}</span>
+                  <p className="flex items-center font-extrabold leading-tight">
+                    {isCollapsed ? (
+                      <ChevronRight className="mr-1 size-4 shrink-0 text-zinc-500" />
+                    ) : (
+                      <ChevronDown className="mr-1 size-4 shrink-0 text-zinc-500" />
+                    )}
                     {ex?.name ?? 'Exercício removido'}
                   </p>
                   {isCollapsed ? (
@@ -169,14 +174,18 @@ function SessionView({ session }: { session: WorkoutSession }) {
                 </button>
                 <button
                   onClick={() => addSet(eid)}
-                  className="shrink-0 rounded-xl bg-lime-400 px-3 py-2 text-sm font-extrabold text-black"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-lime-400 px-3 py-2 text-sm font-extrabold text-black"
                 >
-                  + Série
+                  <Plus className="size-4" /> Série
                 </button>
               </div>
               {isCollapsed ? null : (
               <>
-                {suggestion && <p className="mt-1 text-xs text-lime-300/90">💡 {suggestion.hint}</p>}
+                {suggestion && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-lime-300/90">
+                    <Lightbulb className="size-3.5 shrink-0" /> {suggestion.hint}
+                  </p>
+                )}
 
               <div className="mt-3 space-y-2">
                 {sets.map((s) => {
@@ -236,16 +245,23 @@ function SessionView({ session }: { session: WorkoutSession }) {
                       <div className="mt-2 flex gap-2">
                         <button
                           onClick={() => updateSet(s.globalIdx, { done: !s.done })}
-                          className={`flex-1 rounded-lg py-2.5 text-sm font-extrabold ${s.done ? 'bg-lime-400 text-black' : 'bg-zinc-800 text-zinc-200'}`}
+                          className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2.5 text-sm font-extrabold ${s.done ? 'bg-lime-400 text-black' : 'bg-zinc-800 text-zinc-200'}`}
                         >
-                          {s.done ? '✓ Feita' : 'Marcar feita'}
+                          {s.done && <Check className="size-4" />}
+                          {s.done ? 'Feita' : 'Marcar feita'}
                         </button>
-                        <button onClick={() => removeSet(s.globalIdx)} className="rounded-lg bg-zinc-800 px-3 text-sm">
-                          🗑
+                        <button
+                          onClick={() => removeSet(s.globalIdx)}
+                          aria-label="Remover série"
+                          className="inline-flex items-center rounded-lg bg-zinc-800 px-3 text-sm"
+                        >
+                          <Trash2 className="size-4" />
                         </button>
                       </div>
                       {pr.isPR && pr.detail && (
-                        <p className="mt-1 text-center text-xs font-bold text-amber-300">🏆 {pr.detail}</p>
+                        <p className="mt-1 flex items-center justify-center gap-1 text-center text-xs font-bold text-amber-300">
+                          <Trophy className="size-3.5" /> {pr.detail}
+                        </p>
                       )}
                     </div>
                   )
@@ -253,9 +269,9 @@ function SessionView({ session }: { session: WorkoutSession }) {
                 {sets.length === 0 && (
                   <button
                     onClick={() => addSet(eid)}
-                    className="w-full rounded-xl border border-dashed border-zinc-700 py-3 text-sm text-zinc-400"
+                    className="flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-zinc-700 py-3 text-sm text-zinc-400"
                   >
-                    + Adicionar primeira série
+                    <Plus className="size-4" /> Adicionar primeira série
                   </button>
                 )}
               </div>
@@ -268,8 +284,11 @@ function SessionView({ session }: { session: WorkoutSession }) {
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
         {!showAdd ? (
-          <button onClick={() => setShowAdd(true)} className="w-full rounded-xl bg-zinc-800 py-3 text-sm font-bold">
-            + Adicionar exercício na sessão
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex w-full items-center justify-center gap-1 rounded-xl bg-zinc-800 py-3 text-sm font-bold"
+          >
+            <Plus className="size-4" /> Adicionar exercício na sessão
           </button>
         ) : (
           <div>
@@ -288,7 +307,9 @@ function SessionView({ session }: { session: WorkoutSession }) {
                   className="flex w-full justify-between rounded-lg bg-zinc-950 px-3 py-2.5 text-left text-sm"
                 >
                   <span>{e.name}</span>
-                  <span className="text-lime-300">+ Add</span>
+                  <span className="inline-flex items-center gap-0.5 text-lime-300">
+                    <Plus className="size-4" /> Add
+                  </span>
                 </button>
               ))}
             </div>
@@ -299,8 +320,12 @@ function SessionView({ session }: { session: WorkoutSession }) {
         )}
       </div>
 
-      <button onClick={finish} className="w-full rounded-2xl bg-lime-400 py-4 font-extrabold text-black">
-        {session.finishedAt ? '✓ Treino concluído (ver início)' : 'Concluir treino'}
+      <button
+        onClick={finish}
+        className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-lime-400 py-4 font-extrabold text-black"
+      >
+        {session.finishedAt && <Check className="size-5" />}
+        {session.finishedAt ? 'Treino concluído (ver início)' : 'Concluir treino'}
       </button>
       {session.finishedAt && (
         <button

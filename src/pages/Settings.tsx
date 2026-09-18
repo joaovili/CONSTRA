@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Check, CheckCircle2, Download, Share, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db, ensureSettings } from '../lib/db'
@@ -101,11 +102,17 @@ export default function Settings() {
           O iPhone pode apagar dados do site se faltar espaço. Exporte o backup de tempos em tempos.
         </p>
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={doExport} className="rounded-xl bg-lime-400 py-3 text-sm font-extrabold text-black">
-            ⬇ Exportar JSON
+          <button
+            onClick={doExport}
+            className="flex items-center justify-center gap-1 rounded-xl bg-lime-400 py-3 text-sm font-extrabold text-black"
+          >
+            <Download className="size-4" /> Exportar JSON
           </button>
-          <button onClick={() => fileRef.current?.click()} className="rounded-xl bg-zinc-800 py-3 text-sm font-bold">
-            ⬆ Importar JSON
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="flex items-center justify-center gap-1 rounded-xl bg-zinc-800 py-3 text-sm font-bold"
+          >
+            <Upload className="size-4" /> Importar JSON
           </button>
         </div>
         <button onClick={doCSV} className="mt-2 w-full rounded-xl bg-zinc-800 py-3 text-sm font-bold">
@@ -118,11 +125,27 @@ export default function Settings() {
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3 text-sm">
         <p className="mb-1 font-bold">Instalar no iPhone</p>
         {isStandalone() ? (
-          <p className="text-lime-300">✅ Rodando como app instalado. Tudo certo!</p>
+          <p className="flex items-center gap-1.5 text-lime-300">
+            <CheckCircle2 className="size-4 shrink-0" /> Rodando como app instalado. Tudo certo!
+          </p>
         ) : (
           <ol className="list-decimal space-y-1 pl-5 text-zinc-400">
-            <li>Abra esta página no <b>Safari</b> {isIOS() ? '(você já está nele ✅)' : '(no iPhone use o Safari)'}</li>
-            <li>Toque em <b>Compartilhar ⬆️</b></li>
+            <li>
+              Abra esta página no <b>Safari</b>{' '}
+              {isIOS() ? (
+                <span className="inline-flex items-center gap-0.5">
+                  (você já está nele <Check className="inline size-3.5" />)
+                </span>
+              ) : (
+                '(no iPhone use o Safari)'
+              )}
+            </li>
+            <li>
+              Toque em{' '}
+              <b className="inline-flex items-center gap-0.5">
+                Compartilhar <Share className="inline size-3.5" />
+              </b>
+            </li>
             <li><b>Adicionar à Tela de Início</b> → Adicionar</li>
             <li>Abra pelo ícone CONSTRA na home (fullscreen + offline)</li>
           </ol>

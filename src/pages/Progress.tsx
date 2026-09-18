@@ -1,8 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { TrendingUp } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { db } from '../lib/db'
 import { historyForExercise } from '../lib/stats'
+import { MUSCLE_GROUPS } from '../lib/types'
 
 type Metric = 'maxWeight' | 'volume' | 'best1RM'
 
@@ -16,12 +18,16 @@ export default function Progress() {
   const exercises = useLiveQuery(() => db.exercises.orderBy('name').toArray())
   const sessions = useLiveQuery(() => db.sessions.orderBy('startedAt').toArray())
   const [q, setQ] = useState('')
+  const [group, setGroup] = useState('Todas')
   const [selected, setSelected] = useState<string | null>(null)
   const [metric, setMetric] = useState<Metric>('maxWeight')
 
   const filtered = useMemo(
-    () => (exercises ?? []).filter((e) => !q || e.name.toLowerCase().includes(q.toLowerCase())).slice(0, 30),
-    [exercises, q],
+    () =>
+      (exercises ?? [])
+        .filter((e) => (group === 'Todas' || e.muscleGroup === group) && (!q || e.name.toLowerCase().includes(q.toLowerCase())))
+        .slice(0, 50),
+    [exercises, q, group],
   )
 
   const activeId = filtered.some((e) => e.id === selected) ? selected : filtered[0]?.id
@@ -54,14 +60,32 @@ export default function Progress() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-extrabold">Evolução 📈</h1>
+      <h1 className="flex items-center gap-2 text-2xl font-extrabold">
+        Evolução <TrendingUp className="size-6 text-lime-300" />
+      </h1>
 
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Buscar exercício..."
-        className="min-h-[48px] w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 outline-none focus:border-lime-400"
-      />
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Buscar exercício..."
+          aria-label="Buscar exercício"
+          className="min-h-[48px] flex-1 rounded-xl border border-zinc-800 bg-zinc-900 px-3 outline-none focus:border-lime-400"
+        />
+        <select
+          value={group}
+          onChange={(e) => setGroup(e.target.value)}
+          aria-label="Filtrar por grupo muscular"
+          className="min-h-[48px] rounded-xl border border-zinc-800 bg-zinc-900 px-3 text-sm font-semibold outline-none focus:border-lime-400 sm:w-48"
+        >
+          <option value="Todas">Todos os grupos</option>
+          {MUSCLE_GROUPS.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="space-y-2">
         <label htmlFor="progress-exercise" className="text-xs font-bold tracking-wide text-zinc-500">
@@ -73,9 +97,10 @@ export default function Progress() {
           onChange={(e) => setSelected(e.target.value)}
           className="min-h-[52px] w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 text-base font-semibold outline-none focus:border-lime-400"
         >
+          {filtered.length === 0 && <option value="">Nenhum exercício encontrado</option>}
           {filtered.map((e) => (
             <option key={e.id} value={e.id}>
-              {e.name}
+              {e.name} · {e.muscleGroup}
             </option>
           ))}
         </select>

@@ -9,6 +9,18 @@ export type MuscleGroup =
   | 'Glúteos'
   | 'Corpo todo'
 
+export const MUSCLE_GROUPS: MuscleGroup[] = [
+  'Peito',
+  'Costas',
+  'Pernas',
+  'Ombros',
+  'Bíceps',
+  'Tríceps',
+  'Core',
+  'Glúteos',
+  'Corpo todo',
+]
+
 export type Equipment =
   | 'Barra'
   | 'Haltere'
@@ -72,6 +84,11 @@ export interface AppSettings {
   unit: 'kg' | 'lbs'
   restSeconds: number
   installedAt: number
+}
+
+export interface MetaRow {
+  id: string
+  at: number
 }
 
 export const SET_KIND_LABEL: Record<SetKind, string> = {

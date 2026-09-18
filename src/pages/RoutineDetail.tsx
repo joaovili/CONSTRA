@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { db } from '../lib/db'
@@ -57,8 +58,8 @@ function RoutineView({ routine }: { routine: Routine }) {
 
   return (
     <div className="space-y-4">
-      <button onClick={() => navigate(-1)} className="text-sm text-zinc-400">
-        ← Voltar
+      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-sm text-zinc-400">
+        <ArrowLeft className="size-4" /> Voltar
       </button>
       <h1 className="text-2xl font-extrabold">{routine.name}</h1>
 
@@ -87,14 +88,26 @@ function RoutineView({ routine }: { routine: Routine }) {
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => move(idx, -1)} className="rounded bg-zinc-800 px-2 py-1">
-                    ↑
+                  <button
+                    onClick={() => move(idx, -1)}
+                    aria-label="Mover para cima"
+                    className="inline-flex items-center rounded bg-zinc-800 px-2 py-1"
+                  >
+                    <ArrowUp className="size-4" />
                   </button>
-                  <button onClick={() => move(idx, 1)} className="rounded bg-zinc-800 px-2 py-1">
-                    ↓
+                  <button
+                    onClick={() => move(idx, 1)}
+                    aria-label="Mover para baixo"
+                    className="inline-flex items-center rounded bg-zinc-800 px-2 py-1"
+                  >
+                    <ArrowDown className="size-4" />
                   </button>
-                  <button onClick={() => removeItem(idx)} className="rounded bg-zinc-800 px-2 py-1">
-                    🗑
+                  <button
+                    onClick={() => removeItem(idx)}
+                    aria-label="Remover exercício"
+                    className="inline-flex items-center rounded bg-zinc-800 px-2 py-1"
+                  >
+                    <Trash2 className="size-4" />
                   </button>
                 </div>
               </div>
@@ -151,8 +164,11 @@ function RoutineView({ routine }: { routine: Routine }) {
             </button>
           ))}
         </div>
-        <Link to="/biblioteca" className="mt-2 block text-center text-sm text-zinc-400 underline">
-          Não achou? Criar novo exercício →
+        <Link
+          to="/biblioteca"
+          className="mt-2 flex items-center justify-center gap-1 text-center text-sm text-zinc-400 underline"
+        >
+          Não achou? Criar novo exercício <ArrowRight className="size-4" />
         </Link>
       </div>
     </div>

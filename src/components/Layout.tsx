@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
+import { BookOpen, Dumbbell, Settings, Share, Smartphone, TrendingUp, type LucideIcon } from 'lucide-react'
 import { isIOS, isStandalone } from '../lib/platform'
 
-const TABS = [
-  { to: '/', label: 'Treinos', icon: '🏋️', end: true },
-  { to: '/biblioteca', label: 'Exercícios', icon: '📚' },
-  { to: '/progresso', label: 'Evolução', icon: '📈' },
-  { to: '/ajustes', label: 'Ajustes', icon: '⚙️' },
+const TABS: Array<{ to: string; label: string; icon: LucideIcon; end?: boolean }> = [
+  { to: '/', label: 'Treinos', icon: Dumbbell, end: true },
+  { to: '/biblioteca', label: 'Exercícios', icon: BookOpen },
+  { to: '/progresso', label: 'Evolução', icon: TrendingUp },
+  { to: '/ajustes', label: 'Ajustes', icon: Settings },
 ]
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -25,9 +26,15 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="font-semibold text-amber-200">Instalar no iPhone 📲</p>
+              <p className="flex items-center gap-1.5 font-semibold text-amber-200">
+                <Smartphone className="size-4" /> Instalar no iPhone
+              </p>
               <p className="mt-1 text-amber-100/80">
-                Abra no <b>Safari</b> → <b>Compartilhar ⬆️</b> → <b>Adicionar à Tela de Início</b>. Assim funciona offline na academia.
+                Abra no <b>Safari</b> →{' '}
+                <b className="inline-flex items-center gap-0.5">
+                  Compartilhar <Share className="inline size-3.5" />
+                </b>{' '}
+                → <b>Adicionar à Tela de Início</b>. Assim funciona offline na academia.
               </p>
             </div>
             <button
@@ -56,7 +63,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 `flex flex-col items-center gap-1 py-3 text-xs font-medium ${isActive ? 'text-lime-300' : 'text-zinc-500'}`
               }
             >
-              <span className="text-xl leading-none">{t.icon}</span>
+              <t.icon className="size-5" />
               {t.label}
             </NavLink>
           ))}

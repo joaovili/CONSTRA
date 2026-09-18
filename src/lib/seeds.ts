@@ -60,9 +60,31 @@ function pick(name: string, sets: number, reps: string): TemplatePick {
   return { name, sets, reps }
 }
 
-export async function seedIfEmpty(): Promise<void> {
-  const exCount = await db.exercises.count()
-  if (exCount > 0) return
+let seedPromise: Promise<void> | null = null
+
+/**
+ * Semeia os dados embutidos apenas uma vez na vida do banco.
+ * O marcador em `meta` evita (a) duplicação quando o React StrictMode roda o
+ * efeito 2x e (b) que os templates voltem depois de "Apagar todos os dados".
+ */
+export function seedIfEmpty(): Promise<void> {
+  if (!seedPromise) seedPromise = runSeed()
+  return seedPromise
+}
+
+async function runSeed(): Promise<void> {
+  await db.transaction('rw', db.exercises, db.routines, db.meta, async () => {
+    if (await db.meta.get('seed')) return
+    if ((await db.exercises.count()) > 0) {
+      await db.meta.put({ id: 'seed', at: Date.now() })
+      return
+    }
+    await insertBuiltins()
+    await db.meta.put({ id: 'seed', at: Date.now() })
+  })
+}
+
+async function insertBuiltins(): Promise<void> {
   const now = Date.now()
 
   const withIds = EXERCISES.map((e) => ({ ...e, id: uid('ex_'), createdAt: now }))

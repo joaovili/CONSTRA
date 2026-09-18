@@ -1,3 +1,4 @@
+import { Play } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 export default function RestTimer({ defaultSeconds = 90 }: { defaultSeconds?: number }) {
@@ -65,8 +66,12 @@ export default function RestTimer({ defaultSeconds = 90 }: { defaultSeconds?: nu
           Parar
         </button>
       ) : (
-        <button onClick={() => start()} className="rounded-lg bg-lime-400 px-3 py-2 text-sm font-bold text-black">
-          ▶
+        <button
+          onClick={() => start()}
+          aria-label="Iniciar descanso"
+          className="inline-flex items-center rounded-lg bg-lime-400 px-3 py-2 text-sm font-bold text-black"
+        >
+          <Play className="size-4" />
         </button>
       )}
     </div>

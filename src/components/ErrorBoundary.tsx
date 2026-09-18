@@ -1,3 +1,4 @@
+import { TriangleAlert } from 'lucide-react'
 import { Component, type ReactNode } from 'react'
 
 interface State {
@@ -19,7 +20,7 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
     if (this.state.error) {
       return (
         <div className="mx-auto max-w-md space-y-3 p-6 text-sm">
-          <p className="text-2xl">😵</p>
+          <TriangleAlert className="size-8 text-red-400" />
           <p className="font-bold text-red-300">Algo quebrou nesta tela.</p>
           <pre className="overflow-x-auto rounded-xl bg-zinc-900 p-3 font-mono text-xs text-zinc-300">
             {String(this.state.error.message || this.state.error)}
