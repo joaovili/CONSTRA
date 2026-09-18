@@ -5,6 +5,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import { db, ensureSettings } from '../lib/db'
 import { downloadFile, exportJSON, importJSON, sessionsToCSV } from '../lib/backup'
 import { isIOS, isStandalone } from '../lib/platform'
+import { usePwa } from '../lib/pwa'
 
 export default function Settings() {
   const settings = useLiveQuery(() => db.settings.get('app'))
@@ -17,10 +18,21 @@ export default function Settings() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
   const [confirmWipe, setConfirmWipe] = useState(false)
+  const [checking, setChecking] = useState(false)
+  const [updateMsg, setUpdateMsg] = useState('')
+  const { version, buildTime, needRefresh, updating, update, checkForUpdate, reload } = usePwa()
 
   useEffect(() => {
     ensureSettings()
   }, [])
+
+  async function onCheckUpdate() {
+    setChecking(true)
+    setUpdateMsg('')
+    const found = await checkForUpdate()
+    setChecking(false)
+    setUpdateMsg(found ? 'Nova versão encontrada! Toque em "Atualizar agora".' : 'Você já está na versão mais recente.')
+  }
 
   async function doExport() {
     const json = await exportJSON()
@@ -150,6 +162,35 @@ export default function Settings() {
             <li>Abra pelo ícone CONSTRA na home (fullscreen + offline)</li>
           </ol>
         )}
+      </div>
+
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
+        <p className="mb-1 font-bold">Versão do app</p>
+        <p className="text-sm text-zinc-400">
+          CONSTRA v{version} <span className="text-zinc-600">• build {new Date(buildTime).toLocaleString('pt-BR')}</span>
+        </p>
+        {needRefresh && (
+          <button
+            onClick={update}
+            disabled={updating}
+            className="mt-3 w-full rounded-xl bg-lime-400 py-3 text-sm font-extrabold text-black disabled:opacity-60"
+          >
+            {updating ? 'Atualizando...' : 'Atualizar agora'}
+          </button>
+        )}
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button
+            onClick={onCheckUpdate}
+            disabled={checking}
+            className="rounded-xl bg-zinc-800 py-3 text-sm font-bold text-zinc-200 disabled:opacity-60"
+          >
+            {checking ? 'Verificando...' : 'Verificar versão'}
+          </button>
+          <button onClick={reload} className="rounded-xl bg-zinc-800 py-3 text-sm font-bold text-zinc-200">
+            Recarregar app
+          </button>
+        </div>
+        {updateMsg && <p className="mt-2 text-sm text-lime-300">{updateMsg}</p>}
       </div>
 
       <button onClick={() => setConfirmWipe(true)} className="w-full rounded-xl border border-red-900 py-3 text-sm font-bold text-red-400">

@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { BookOpen, Dumbbell, Settings, Share, Smartphone, TrendingUp, type LucideIcon } from 'lucide-react'
+import { BookOpen, CheckCircle2, Dumbbell, RefreshCw, Settings, Share, Smartphone, TrendingUp, type LucideIcon } from 'lucide-react'
 import { isIOS, isStandalone } from '../lib/platform'
+import { usePwa } from '../lib/pwa'
 
 const TABS: Array<{ to: string; label: string; icon: LucideIcon; end?: boolean }> = [
   { to: '/', label: 'Treinos', icon: Dumbbell, end: true },
@@ -12,6 +13,7 @@ const TABS: Array<{ to: string; label: string; icon: LucideIcon; end?: boolean }
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [showInstall, setShowInstall] = useState(false)
+  const { needRefresh, offlineReady, updating, update, dismissUpdate, dismissOffline } = usePwa()
 
   useEffect(() => {
     if (isIOS() && !isStandalone()) {
@@ -22,6 +24,42 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="mx-auto flex min-h-svh w-full max-w-md flex-col bg-zinc-950 text-zinc-50">
+      {needRefresh && (
+        <div className="border-b border-lime-500/30 bg-lime-500/10 px-4 py-3 text-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-1.5 font-semibold text-lime-200">
+                <RefreshCw className="size-4" /> Nova versão disponível
+              </p>
+              <p className="mt-1 text-lime-100/80">Atualize para receber as últimas melhorias.</p>
+            </div>
+            <div className="flex shrink-0 gap-1">
+              <button
+                onClick={update}
+                disabled={updating}
+                className="rounded-lg bg-lime-400 px-2.5 py-1 text-xs font-extrabold text-black disabled:opacity-60"
+              >
+                {updating ? 'Atualizando...' : 'Atualizar'}
+              </button>
+              <button onClick={dismissUpdate} className="rounded-lg bg-zinc-800 px-2 py-1 text-xs">
+                Depois
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {offlineReady && !needRefresh && (
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-800 bg-zinc-900 px-4 py-2 text-xs text-zinc-400">
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 className="size-3.5 text-lime-300" /> Pronto para usar offline.
+          </span>
+          <button onClick={dismissOffline} className="rounded bg-zinc-800 px-2 py-0.5">
+            OK
+          </button>
+        </div>
+      )}
+
       {showInstall && (
         <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
           <div className="flex items-start justify-between gap-3">

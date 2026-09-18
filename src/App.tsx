@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
+import { PwaProvider } from './lib/PwaProvider'
 import Home from './pages/Home'
 import Library from './pages/Library'
 import Progress from './pages/Progress'
@@ -12,16 +13,18 @@ export default function App() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/biblioteca" element={<Library />} />
-            <Route path="/rotina/:id" element={<RoutineDetail />} />
-            <Route path="/sessao/:id" element={<SessionPage />} />
-            <Route path="/progresso" element={<Progress />} />
-            <Route path="/ajustes" element={<Settings />} />
-          </Routes>
-        </Layout>
+        <PwaProvider>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/biblioteca" element={<Library />} />
+              <Route path="/rotina/:id" element={<RoutineDetail />} />
+              <Route path="/sessao/:id" element={<SessionPage />} />
+              <Route path="/progresso" element={<Progress />} />
+              <Route path="/ajustes" element={<Settings />} />
+            </Routes>
+          </Layout>
+        </PwaProvider>
       </ErrorBoundary>
     </BrowserRouter>
   )
