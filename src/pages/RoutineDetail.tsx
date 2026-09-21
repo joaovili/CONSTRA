@@ -198,7 +198,7 @@ function RoutineEditor({ routine }: { routine?: Routine }) {
         </Link>
       </div>
 
-      <div className="sticky bottom-0 -mx-4 mt-2 px-4 py-3">
+      <div className="sticky-above-nav -mx-4 mt-2 px-4 py-3">
         <button onClick={finish} className="w-full rounded-xl bg-lime-400 py-3 font-extrabold text-black">
           {isNew ? 'Criar rotina' : 'Concluir'}
         </button>
