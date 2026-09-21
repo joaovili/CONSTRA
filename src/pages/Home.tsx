@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { CheckCircle2, Play, Plus, Trash2, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { CheckCircle2, GripVertical, Play, Plus, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db } from '../lib/db'
@@ -12,14 +12,65 @@ interface PendingDelete {
   id: string
 }
 
+function sortRoutines(list: Routine[]): Routine[] {
+  return [...list].sort((a, b) => {
+    const ao = a.order ?? -1
+    const bo = b.order ?? -1
+    if (ao !== bo) return ao - bo
+    return b.updatedAt - a.updatedAt
+  })
+}
+
 export default function Home() {
   const navigate = useNavigate()
   const location = useLocation()
-  const routines = useLiveQuery(() => db.routines.orderBy('updatedAt').reverse().toArray())
+  const routinesRaw = useLiveQuery(() => db.routines.toArray())
+  const routines = useMemo(() => sortRoutines(routinesRaw ?? []), [routinesRaw])
   const sessions = useLiveQuery(() => db.sessions.orderBy('startedAt').reverse().limit(5).toArray())
   const [seeding, setSeeding] = useState(true)
   const [flash, setFlash] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [dragOrder, setDragOrder] = useState<string[] | null>(null)
+
+  const orderedRoutines = useMemo(() => {
+    if (!dragOrder) return routines
+    const byId = new Map(routines.map((r) => [r.id, r]))
+    return dragOrder.map((id) => byId.get(id)).filter((r): r is Routine => !!r)
+  }, [routines, dragOrder])
+
+  function startDrag(e: ReactPointerEvent, id: string) {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setDragId(id)
+    setDragOrder(routines.map((r) => r.id))
+  }
+
+  function moveDrag(e: ReactPointerEvent) {
+    if (!dragId) return
+    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-card-id]') as HTMLElement | null
+    const overId = el?.dataset.cardId
+    if (!overId || overId === dragId) return
+    setDragOrder((prev) => {
+      if (!prev) return prev
+      const from = prev.indexOf(dragId)
+      const to = prev.indexOf(overId)
+      if (from < 0 || to < 0) return prev
+      const next = [...prev]
+      next.splice(from, 1)
+      next.splice(to, 0, dragId)
+      return next
+    })
+  }
+
+  async function endDrag() {
+    if (dragOrder) {
+      await db.transaction('rw', db.routines, async () => {
+        for (let i = 0; i < dragOrder.length; i++) await db.routines.update(dragOrder[i], { order: i })
+      })
+    }
+    setDragId(null)
+    setDragOrder(null)
+  }
 
   useEffect(() => {
     seedIfEmpty().finally(() => setSeeding(false))
@@ -110,10 +161,24 @@ export default function Home() {
         </Link>
 
         <div className="space-y-2">
-          {(routines ?? []).map((r) => (
-            <div key={r.id} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
+          {orderedRoutines.map((r) => (
+            <div
+              key={r.id}
+              data-card-id={r.id}
+              className={`rounded-2xl border border-zinc-800 bg-zinc-900 p-3 ${dragId === r.id ? 'opacity-60' : ''}`}
+            >
+              <div className="flex items-center gap-1">
+                <button
+                  onPointerDown={(e) => startDrag(e, r.id)}
+                  onPointerMove={moveDrag}
+                  onPointerUp={endDrag}
+                  onPointerCancel={endDrag}
+                  aria-label="Arrastar para reordenar"
+                  className="touch-none shrink-0 cursor-grab rounded-lg p-2 text-zinc-500 active:cursor-grabbing"
+                >
+                  <GripVertical className="size-5" />
+                </button>
+                <div className="min-w-0 flex-1">
                   <p className="truncate font-bold">{r.name}</p>
                   <p className="text-xs text-zinc-400">
                     {r.items.length} exercícios
@@ -143,7 +208,7 @@ export default function Home() {
               </button>
             </div>
           ))}
-          {(routines?.length ?? 0) === 0 && (
+          {routines.length === 0 && (
             <p className="rounded-xl border border-dashed border-zinc-800 p-4 text-center text-sm text-zinc-500">
               Nenhuma rotina ainda. Toque em "Nova rotina" para montar a sua.
             </p>

@@ -51,6 +51,7 @@ export interface Routine {
   id: string
   name: string
   items: RoutineItem[]
+  order?: number
   builtin?: boolean
   createdAt: number
   updatedAt: number
