@@ -218,7 +218,7 @@ function CardioForm({ session }: { session?: CardioSession }) {
         />
       </div>
 
-      <div className="sticky bottom-0 -mx-4 mt-2 border-t border-zinc-800 bg-zinc-950/95 px-4 py-3 backdrop-blur">
+      <div className="sticky bottom-0 -mx-4 mt-2 px-4 py-3">
         <button onClick={save} className="w-full rounded-xl bg-lime-400 py-3 font-extrabold text-black">
           {isNew ? 'Salvar atividade' : 'Salvar alterações'}
         </button>
