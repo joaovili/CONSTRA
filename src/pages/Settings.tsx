@@ -3,7 +3,7 @@ import { Check, CheckCircle2, Download, Share, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db, ensureSettings } from '../lib/db'
-import { downloadFile, exportJSON, importJSON, sessionsToCSV } from '../lib/backup'
+import { downloadFile, exportRoutinesCSV, importRoutinesCSV } from '../lib/backup'
 import { isIOS, isStandalone } from '../lib/platform'
 import { usePwa } from '../lib/pwa'
 
@@ -14,7 +14,6 @@ export default function Settings() {
     rt: await db.routines.count(),
     ws: await db.sessions.count(),
   }))
-  const sessions = useLiveQuery(() => db.sessions.toArray())
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
   const [confirmWipe, setConfirmWipe] = useState(false)
@@ -35,24 +34,17 @@ export default function Settings() {
   }
 
   async function doExport() {
-    const json = await exportJSON()
-    downloadFile(`constra-backup-${new Date().toISOString().slice(0, 10)}.json`, json)
-    setMsg('Backup exportado! Guarde o arquivo (importante no iOS).')
-  }
-
-  async function doCSV() {
-    const csv = sessionsToCSV(sessions ?? [])
-    downloadFile('constra-series.csv', csv, 'text/csv')
-    setMsg('CSV exportado!')
+    const csv = await exportRoutinesCSV()
+    downloadFile(`constra-fichas-${new Date().toISOString().slice(0, 10)}.csv`, csv)
+    setMsg('Fichas exportadas! Guarde o arquivo (importante no iOS).')
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
     if (!f) return
     try {
-      const text = await f.text()
-      const r = await importJSON(text)
-      setMsg(`Importado: ${r.exercises} exercícios, ${r.routines} rotinas, ${r.sessions} sessões.`)
+      const r = await importRoutinesCSV(await f.text())
+      setMsg(`Importado: ${r.routines} fichas e ${r.exercises} exercícios novos.`)
     } catch {
       setMsg('Arquivo inválido.')
     } finally {
@@ -109,28 +101,26 @@ export default function Settings() {
       </div>
 
       <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3">
-        <p className="font-bold text-amber-200">Backup (importante no iOS)</p>
+        <p className="font-bold text-amber-200">Fichas de treino (importante no iOS)</p>
         <p className="mb-3 text-sm text-zinc-400">
-          O iPhone pode apagar dados do site se faltar espaço. Exporte o backup de tempos em tempos.
+          Exporte suas fichas em CSV para guardar ou levar a outro aparelho. O iPhone pode apagar dados do site se faltar
+          espaço, então exporte de tempos em tempos.
         </p>
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={doExport}
             className="flex items-center justify-center gap-1 rounded-xl bg-lime-400 py-3 text-sm font-extrabold text-black"
           >
-            <Download className="size-4" /> Exportar JSON
+            <Download className="size-4" /> Exportar CSV
           </button>
           <button
             onClick={() => fileRef.current?.click()}
             className="flex items-center justify-center gap-1 rounded-xl bg-zinc-800 py-3 text-sm font-bold"
           >
-            <Upload className="size-4" /> Importar JSON
+            <Upload className="size-4" /> Importar CSV
           </button>
         </div>
-        <button onClick={doCSV} className="mt-2 w-full rounded-xl bg-zinc-800 py-3 text-sm font-bold">
-          Exportar CSV (planilha)
-        </button>
-        <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onFile} />
+        <input ref={fileRef} type="file" accept="text/csv,.csv" className="hidden" onChange={onFile} />
         {msg && <p className="mt-2 text-sm text-lime-300">{msg}</p>}
       </div>
 

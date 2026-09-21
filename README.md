@@ -7,7 +7,7 @@ Logbook universal para anotar **carga × reps** de cada exercício e ver a progr
 - 🏋️ Rotinas editáveis + treino livre
 - ✅ Sessão com sugestão de carga, timer de descanso, badge de PR
 - 📈 Gráfico carga máx / volume / 1RM estimado por exercício
-- 💾 100% local (IndexedDB) + backup JSON/CSV (importante no iOS)
+- 💾 100% local (IndexedDB) + import/export de fichas em CSV (importante no iOS)
 
 ## Rodar local
 
@@ -52,7 +52,7 @@ O projeto já tem `Dockerfile` + `nginx.conf` (build estático servido via nginx
 1. Abrir a URL no **Safari** (Chrome no iOS não instala PWA)
 2. **Compartilhar ⬆️ → Adicionar à Tela de Início**
 3. Abrir pelo ícone CONSTRA (offline funciona)
-4. Exportar backup JSON de tempos em tempos em **Ajustes** (o iOS pode limpar dados do site sem espaço)
+4. Exportar/importar fichas em CSV de tempos em tempos em **Ajustes** (o iOS pode limpar dados do site sem espaço)
 
 ## Stack
 
