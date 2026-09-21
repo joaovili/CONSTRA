@@ -88,3 +88,33 @@ export function detectPR(
   }
   return { isPR: false }
 }
+
+/** Ritmo em minutos por km — aritmética sobre os valores digitados (não mede distância). */
+export function paceMinPerKm(durationMin?: number, distanceKm?: number): number | null {
+  if (!durationMin || !distanceKm || distanceKm <= 0) return null
+  return durationMin / distanceKm
+}
+
+/** Formata ritmo como "5:30/km". */
+export function formatPace(pace: number | null): string | null {
+  if (pace == null || !Number.isFinite(pace) || pace <= 0) return null
+  const totalSeconds = Math.round(pace * 60)
+  const min = Math.floor(totalSeconds / 60)
+  const sec = totalSeconds % 60
+  return `${min}:${String(sec).padStart(2, '0')}/km`
+}
+
+/** Duração legível: "45min" ou "1h05". */
+export function formatDuration(min?: number): string | null {
+  if (!min || min <= 0) return null
+  const h = Math.floor(min / 60)
+  const m = Math.round(min % 60)
+  return h > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${m}min`
+}
+
+/** Carga do treino = esforço percebido × tempo. Base para comparar esforço acumulado. */
+export function trainingLoad(durationMin?: number, effort?: number): number | null {
+  if (!durationMin || !effort) return null
+  return Math.round(durationMin * effort)
+}
+

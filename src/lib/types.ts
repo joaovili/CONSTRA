@@ -91,6 +91,71 @@ export interface MetaRow {
   at: number
 }
 
+export type ActivityKind = 'Corrida' | 'Caminhada'
+
+export const ACTIVITY_KINDS: ActivityKind[] = ['Corrida', 'Caminhada']
+
+/** Tipos de treino por atividade. Novas atividades entram aqui quando existirem. */
+export const TRAINING_TYPES: Record<ActivityKind, string[]> = {
+  Corrida: [
+    'Regenerativo',
+    'Longão',
+    'Tempo (ritmo)',
+    'Intervalado',
+    'Sprints (tiros)',
+    'Fartlek',
+    'Progressivo',
+    'Prova / teste',
+    'Livre',
+  ],
+  Caminhada: ['Leve', 'Moderada', 'Rápida', 'Inclinada', 'Livre'],
+}
+
+export interface CardioSession {
+  id: string
+  kind: ActivityKind
+  trainingType: string
+  startedAt: number
+  durationMin?: number // tempo em minutos
+  distanceKm?: number // distância em km (digitada, não medida)
+  calories?: number // kcal
+  effort?: number // 1-10: esforço percebido durante
+  feelAfter?: number // 1-5: como se sente agora
+  notes?: string
+  createdAt: number
+}
+
+/** Escala de esforço (durante). Rótulos descritivos — o número é só a métrica por trás. */
+export const EFFORT_SCALE: Array<{ value: number; label: string }> = [
+  { value: 1, label: 'Muito tranquilo' },
+  { value: 2, label: 'Bem leve' },
+  { value: 3, label: 'Leve' },
+  { value: 4, label: 'Confortável' },
+  { value: 5, label: 'Moderado' },
+  { value: 6, label: 'Puxado' },
+  { value: 7, label: 'Difícil' },
+  { value: 8, label: 'Muito difícil' },
+  { value: 9, label: 'Quase no limite' },
+  { value: 10, label: 'No limite' },
+]
+
+/** Escala de sensação (após/agora). */
+export const FEEL_SCALE: Array<{ value: number; label: string }> = [
+  { value: 1, label: 'Exausto' },
+  { value: 2, label: 'Bem cansado' },
+  { value: 3, label: 'Cansado, mas ok' },
+  { value: 4, label: 'Bem' },
+  { value: 5, label: 'Recuperado' },
+]
+
+export function effortLabel(value?: number): string | undefined {
+  return EFFORT_SCALE.find((e) => e.value === value)?.label
+}
+
+export function feelLabel(value?: number): string | undefined {
+  return FEEL_SCALE.find((e) => e.value === value)?.label
+}
+
 export const SET_KIND_LABEL: Record<SetKind, string> = {
   normal: 'Normal',
   warmup: 'Aquec.',

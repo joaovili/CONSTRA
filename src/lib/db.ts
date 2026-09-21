@@ -1,10 +1,11 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { AppSettings, Exercise, MetaRow, Routine, WorkoutSession } from './types'
+import type { AppSettings, CardioSession, Exercise, MetaRow, Routine, WorkoutSession } from './types'
 
 class LogbookDB extends Dexie {
   exercises!: EntityTable<Exercise, 'id'>
   routines!: EntityTable<Routine, 'id'>
   sessions!: EntityTable<WorkoutSession, 'id'>
+  cardio!: EntityTable<CardioSession, 'id'>
   settings!: EntityTable<AppSettings, 'id'>
   meta!: EntityTable<MetaRow, 'id'>
 
@@ -18,6 +19,9 @@ class LogbookDB extends Dexie {
     })
     this.version(2).stores({
       meta: 'id',
+    })
+    this.version(3).stores({
+      cardio: 'id, kind, startedAt',
     })
   }
 }

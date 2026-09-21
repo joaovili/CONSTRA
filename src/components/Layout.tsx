@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { BookOpen, CheckCircle2, Dumbbell, RefreshCw, Settings, Share, Smartphone, TrendingUp, type LucideIcon } from 'lucide-react'
+import { Activity, BookOpen, CheckCircle2, Dumbbell, RefreshCw, Settings, Share, Smartphone, TrendingUp, type LucideIcon } from 'lucide-react'
 import { isIOS, isStandalone } from '../lib/platform'
 import { usePwa } from '../lib/pwa'
 
 const TABS: Array<{ to: string; label: string; icon: LucideIcon; end?: boolean }> = [
   { to: '/', label: 'Treinos', icon: Dumbbell, end: true },
+  { to: '/cardio', label: 'Cardio', icon: Activity },
   { to: '/biblioteca', label: 'Exercícios', icon: BookOpen },
   { to: '/progresso', label: 'Evolução', icon: TrendingUp },
   { to: '/ajustes', label: 'Ajustes', icon: Settings },
@@ -91,7 +92,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <main className="flex-1 overflow-y-auto px-4 pt-4 pb-4">{children}</main>
 
       <nav className="pb-safe z-10 shrink-0 border-t border-zinc-800 bg-zinc-950/95 backdrop-blur">
-        <div className="mx-auto grid max-w-md grid-cols-4">
+        <div className="mx-auto grid max-w-md grid-cols-5">
           {TABS.map((t) => (
             <NavLink
               key={t.to}

@@ -13,6 +13,7 @@ export default function Settings() {
     ex: await db.exercises.count(),
     rt: await db.routines.count(),
     ws: await db.sessions.count(),
+    cd: await db.cardio.count(),
   }))
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
@@ -53,10 +54,11 @@ export default function Settings() {
   }
 
   async function wipe() {
-    await db.transaction('rw', [db.exercises, db.routines, db.sessions], async () => {
+    await db.transaction('rw', [db.exercises, db.routines, db.sessions, db.cardio], async () => {
       await db.exercises.clear()
       await db.routines.clear()
       await db.sessions.clear()
+      await db.cardio.clear()
     })
     setConfirmWipe(false)
     setMsg('Tudo apagado.')
@@ -68,7 +70,8 @@ export default function Settings() {
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-400">
         <p>
-          {counts?.ex ?? 0} exercícios • {counts?.rt ?? 0} rotinas • {counts?.ws ?? 0} sessões
+          {counts?.ex ?? 0} exercícios • {counts?.rt ?? 0} rotinas • {counts?.ws ?? 0} sessões • {counts?.cd ?? 0}{' '}
+          atividades
         </p>
         <p className="mt-1">Dados 100% locais, no seu aparelho. Sem conta, sem nuvem.</p>
       </div>
@@ -192,7 +195,8 @@ export default function Settings() {
         title="Apagar TUDO?"
         description={
           <>
-            {counts?.ex ?? 0} exercícios • {counts?.rt ?? 0} rotinas • {counts?.ws ?? 0} sessões serão apagados.
+            {counts?.ex ?? 0} exercícios • {counts?.rt ?? 0} rotinas • {counts?.ws ?? 0} sessões • {counts?.cd ?? 0}{' '}
+            atividades serão apagados.
             <br />
             Exporte o backup antes!
             <br />
