@@ -24,6 +24,18 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 
+/* iOS standalone: 100dvh/svh reportam a altura MENOS os safe-area insets
+   (WebKit #254868), deixando uma faixa vazia embaixo. `vh` é a única unidade
+   que inclui os insets no modo instalado, então trocamos só nele. */
+.app-height {
+  height: 100dvh;
+}
+@media all and (display-mode: standalone) {
+  .app-height {
+    height: 100vh;
+  }
+}
+
 /* Inputs numéricos grandes - evita zoom no iOS (min 16px) */
 input, select, textarea {
   font-size: 16px;

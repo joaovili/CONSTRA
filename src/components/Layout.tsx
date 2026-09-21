@@ -24,7 +24,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <div className="mx-auto flex h-dvh w-full max-w-md flex-col overflow-hidden bg-zinc-950 text-zinc-50">
+    <div className="app-height pt-safe mx-auto flex w-full max-w-md flex-col overflow-hidden bg-zinc-950 text-zinc-50">
       {needRefresh && (
         <div className="border-b border-lime-500/30 bg-lime-500/10 px-4 py-3 text-sm">
           <div className="flex items-start justify-between gap-3">
