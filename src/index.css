@@ -36,6 +36,12 @@ body {
   }
 }
 
+/* Elemento sticky que precisa ficar acima da nav flutuante (pill ~58px). */
+.sticky-above-nav {
+  position: sticky;
+  bottom: calc(env(safe-area-inset-bottom) + 68px);
+}
+
 /* Inputs numéricos grandes - evita zoom no iOS (min 16px) */
 input, select, textarea {
   font-size: 16px;

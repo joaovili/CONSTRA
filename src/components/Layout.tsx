@@ -24,7 +24,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <div className="app-height pt-safe mx-auto flex w-full max-w-md flex-col overflow-hidden bg-zinc-950 text-zinc-50">
+    <div className="app-height pt-safe relative mx-auto flex w-full max-w-md flex-col overflow-hidden bg-zinc-950 text-zinc-50">
       {needRefresh && (
         <div className="border-b border-lime-500/30 bg-lime-500/10 px-4 py-3 text-sm">
           <div className="flex items-start justify-between gap-3">
@@ -89,17 +89,17 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-4">{children}</main>
+      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-28">{children}</main>
 
-      <nav className="pb-safe shrink-0 px-3">
-        <div className="mx-auto mb-2 grid max-w-md grid-cols-5 gap-1 rounded-full border border-zinc-800 bg-zinc-900/80 p-1 shadow-lg backdrop-blur-md">
+      <nav className="pb-safe absolute inset-x-0 bottom-0 z-10 px-3">
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1 rounded-full border border-zinc-800 bg-zinc-900/60 p-1 shadow-lg backdrop-blur-md">
           {TABS.map((t) => (
             <NavLink
               key={t.to}
               to={t.to}
               end={t.end}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 rounded-full py-2 text-[10px] font-semibold ${isActive ? 'bg-zinc-800 text-lime-300' : 'text-zinc-400'}`
+                `flex flex-col items-center gap-0.5 rounded-full py-2 text-[10px] font-semibold ${isActive ? 'bg-zinc-700/60 text-lime-300' : 'text-zinc-400'}`
               }
             >
               <t.icon className="size-5" />
