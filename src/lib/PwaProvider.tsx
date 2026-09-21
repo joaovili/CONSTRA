@@ -30,6 +30,11 @@ export function PwaProvider({ children }: { children: ReactNode }) {
     }
   }, [updateServiceWorker])
 
+  // Nova versão detectada (ao abrir/voltar ao app) → aplica e recarrega sozinho.
+  useEffect(() => {
+    if (needRefresh) void updateServiceWorker(true)
+  }, [needRefresh, updateServiceWorker])
+
   const checkForUpdate = useCallback(async () => {
     const reg = registrationRef.current ?? (await navigator.serviceWorker?.getRegistration())
     if (!reg) return false
