@@ -1,27 +1,26 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Activity, BookOpen, CheckCircle2, Dumbbell, RefreshCw, Settings, Share, Smartphone, TrendingUp, type LucideIcon } from 'lucide-react'
-import { isIOS, isStandalone } from '../lib/platform'
+import { Activity, CheckCircle2, Dumbbell, RefreshCw, Settings, Share, Smartphone, TrendingUp, type LucideIcon } from 'lucide-react'
+import { useInstall } from '../lib/install'
 import { usePwa } from '../lib/pwa'
 
 const TABS: Array<{ to: string; label: string; icon: LucideIcon; end?: boolean }> = [
   { to: '/', label: 'Treinos', icon: Dumbbell, end: true },
   { to: '/cardio', label: 'Cardio', icon: Activity },
-  { to: '/biblioteca', label: 'Exercícios', icon: BookOpen },
   { to: '/progresso', label: 'Evolução', icon: TrendingUp },
   { to: '/ajustes', label: 'Ajustes', icon: Settings },
 ]
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const [showInstall, setShowInstall] = useState(false)
+  const { ios, standalone, canPrompt, promptInstall } = useInstall()
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem('logbook-install-dismissed') === '1')
+  const showInstall = !standalone && !dismissed && (ios || canPrompt)
   const { needRefresh, offlineReady, updating, update, dismissUpdate, dismissOffline } = usePwa()
 
-  useEffect(() => {
-    if (isIOS() && !isStandalone()) {
-      const dismissed = localStorage.getItem('logbook-install-dismissed')
-      if (!dismissed) setShowInstall(true)
-    }
-  }, [])
+  function dismissInstall() {
+    localStorage.setItem('logbook-install-dismissed', '1')
+    setDismissed(true)
+  }
 
   return (
     <div className="app-height pt-safe relative mx-auto flex w-full max-w-md flex-col overflow-hidden bg-zinc-950 text-zinc-50">
@@ -66,25 +65,35 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="flex items-center gap-1.5 font-semibold text-amber-200">
-                <Smartphone className="size-4" /> Instalar no iPhone
+                <Smartphone className="size-4" /> {ios ? 'Instalar no iPhone' : 'Instalar o app'}
               </p>
               <p className="mt-1 text-amber-100/80">
-                Abra no <b>Safari</b> →{' '}
-                <b className="inline-flex items-center gap-0.5">
-                  Compartilhar <Share className="inline size-3.5" />
-                </b>{' '}
-                → <b>Adicionar à Tela de Início</b>. Assim funciona offline na academia.
+                {ios ? (
+                  <>
+                    Abra no <b>Safari</b> →{' '}
+                    <b className="inline-flex items-center gap-0.5">
+                      Compartilhar <Share className="inline size-3.5" />
+                    </b>{' '}
+                    → <b>Adicionar à Tela de Início</b>. Assim funciona offline na academia.
+                  </>
+                ) : (
+                  <>Adicione o CONSTRA à tela inicial para usar offline na academia.</>
+                )}
               </p>
             </div>
-            <button
-              className="rounded-lg bg-zinc-800 px-2 py-1 text-xs"
-              onClick={() => {
-                localStorage.setItem('logbook-install-dismissed', '1')
-                setShowInstall(false)
-              }}
-            >
-              OK
-            </button>
+            <div className="flex shrink-0 flex-col gap-1">
+              {canPrompt && (
+                <button
+                  onClick={() => void promptInstall()}
+                  className="rounded-lg bg-lime-400 px-2.5 py-1 text-xs font-extrabold text-black"
+                >
+                  Instalar
+                </button>
+              )}
+              <button className="rounded-lg bg-zinc-800 px-2 py-1 text-xs" onClick={dismissInstall}>
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -92,7 +101,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <main className="flex-1 overflow-y-auto px-4 pt-4 pb-28">{children}</main>
 
       <nav className="pb-safe absolute inset-x-0 bottom-0 z-10 px-3">
-        <div className="mx-auto grid max-w-md grid-cols-5 gap-1 rounded-full border border-zinc-800 bg-zinc-900/60 p-1 shadow-lg backdrop-blur-md">
+        <div className="mx-auto grid max-w-md grid-cols-4 gap-1 rounded-full border border-zinc-800 bg-zinc-900/60 p-1 shadow-lg backdrop-blur-md">
           {TABS.map((t) => (
             <NavLink
               key={t.to}

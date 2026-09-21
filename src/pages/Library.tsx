@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db } from '../lib/db'
 import type { Equipment, MuscleGroup } from '../lib/types'
@@ -10,6 +11,7 @@ const MUSCLES = MUSCLE_GROUPS
 const EQUIPS: Equipment[] = ['Barra', 'Haltere', 'Máquina', 'Cabo', 'Peso corporal', 'Kettlebell', 'Outro']
 
 export default function Library() {
+  const navigate = useNavigate()
   const exercises = useLiveQuery(() => db.exercises.orderBy('name').toArray())
   const [q, setQ] = useState('')
   const [muscle, setMuscle] = useState<string>('Todas')
@@ -46,6 +48,12 @@ export default function Library() {
 
   return (
     <div className="space-y-4">
+      <button
+        onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
+        className="inline-flex items-center gap-1 text-sm text-zinc-400"
+      >
+        <ArrowLeft className="size-4" /> Voltar
+      </button>
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-extrabold">Exercícios</h1>
         <button

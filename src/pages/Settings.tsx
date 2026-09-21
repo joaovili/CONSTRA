@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db, ensureSettings } from '../lib/db'
 import { downloadFile, exportRoutinesCSV, importRoutinesCSV } from '../lib/backup'
-import { isIOS, isStandalone } from '../lib/platform'
+import { useInstall } from '../lib/install'
 import { usePwa } from '../lib/pwa'
 
 export default function Settings() {
@@ -21,6 +21,7 @@ export default function Settings() {
   const [checking, setChecking] = useState(false)
   const [updateMsg, setUpdateMsg] = useState('')
   const { version, buildTime, needRefresh, updating, update, checkForUpdate, reload } = usePwa()
+  const { ios, standalone, canPrompt, promptInstall } = useInstall()
 
   useEffect(() => {
     ensureSettings()
@@ -128,22 +129,28 @@ export default function Settings() {
       </div>
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3 text-sm">
-        <p className="mb-1 font-bold">Instalar no iPhone</p>
-        {isStandalone() ? (
+        <p className="mb-1 font-bold">{ios ? 'Instalar no iPhone' : 'Instalar o app'}</p>
+        {standalone ? (
           <p className="flex items-center gap-1.5 text-lime-300">
             <CheckCircle2 className="size-4 shrink-0" /> Rodando como app instalado. Tudo certo!
           </p>
-        ) : (
+        ) : canPrompt ? (
+          <>
+            <p className="text-zinc-400">Instale para abrir em tela cheia e funcionar offline na academia.</p>
+            <button
+              onClick={() => void promptInstall()}
+              className="mt-2 w-full rounded-xl bg-lime-400 py-2 text-sm font-extrabold text-black"
+            >
+              Instalar agora
+            </button>
+          </>
+        ) : ios ? (
           <ol className="list-decimal space-y-1 pl-5 text-zinc-400">
             <li>
               Abra esta página no <b>Safari</b>{' '}
-              {isIOS() ? (
-                <span className="inline-flex items-center gap-0.5">
-                  (você já está nele <Check className="inline size-3.5" />)
-                </span>
-              ) : (
-                '(no iPhone use o Safari)'
-              )}
+              <span className="inline-flex items-center gap-0.5">
+                (você já está nele <Check className="inline size-3.5" />)
+              </span>
             </li>
             <li>
               Toque em{' '}
@@ -154,6 +161,11 @@ export default function Settings() {
             <li><b>Adicionar à Tela de Início</b> → Adicionar</li>
             <li>Abra pelo ícone CONSTRA na home (fullscreen + offline)</li>
           </ol>
+        ) : (
+          <p className="text-zinc-400">
+            No menu do navegador, escolha <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>. Assim abre em
+            tela cheia e funciona offline.
+          </p>
         )}
       </div>
 
