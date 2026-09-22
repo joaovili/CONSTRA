@@ -57,7 +57,7 @@ export interface Routine {
   updatedAt: number
 }
 
-export type SetKind = 'normal' | 'warmup' | 'drop' | 'failure'
+export type SetKind = 'warmup' | 'prep' | 'normal' | 'drop' | 'failure'
 
 export interface SetEntry {
   id: string
@@ -157,9 +157,11 @@ export function feelLabel(value?: number): string | undefined {
   return FEEL_SCALE.find((e) => e.value === value)?.label
 }
 
+/** Rótulos exibidos. 'normal' = série válida (de trabalho). */
 export const SET_KIND_LABEL: Record<SetKind, string> = {
-  normal: 'Normal',
   warmup: 'Aquec.',
+  prep: 'Prep.',
+  normal: 'Válida',
   drop: 'Drop',
   failure: 'Falha',
 }

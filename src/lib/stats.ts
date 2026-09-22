@@ -24,7 +24,9 @@ export function historyForExercise(sessions: WorkoutSession[], exerciseId: strin
   const perSession = new Map<number, HistoryPoint>()
   const sorted = [...sessions].sort((a, b) => a.startedAt - b.startedAt)
   for (const s of sorted) {
-    const sets = s.sets.filter((x) => x.exerciseId === exerciseId && x.done && x.kind !== 'warmup')
+    const sets = s.sets.filter(
+      (x) => x.exerciseId === exerciseId && x.done && x.kind !== 'warmup' && x.kind !== 'prep',
+    )
     if (sets.length === 0) continue
     const maxWeight = Math.max(...sets.map((x) => x.weight))
     const maxReps = Math.max(...sets.filter((x) => x.weight === maxWeight).map((x) => x.reps))
