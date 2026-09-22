@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { CheckCircle2, Dumbbell, GripVertical, MapPin, Play, Plus, Trash2, X } from 'lucide-react'
+import { CheckCircle2, Dumbbell, GripVertical, MapPin, Play, Plus, Settings, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -181,25 +181,27 @@ export default function Home() {
       </header>
 
       {places.length > 0 && (
-        <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
-          <MapPin className="size-4 shrink-0 text-lime-300" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold tracking-wide text-zinc-500">TREINANDO EM</p>
-            <select
-              value={currentPlaceId ?? ''}
-              onChange={(e) => void setCurrentPlace(e.target.value)}
-              aria-label="Local atual"
-              className="mt-0.5 w-full bg-transparent text-base font-bold outline-none"
-            >
-              {places.map((p) => (
-                <option key={p.id} value={p.id} className="bg-zinc-900">
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Link to="/ajustes" className="shrink-0 rounded-lg bg-zinc-800 px-3 py-2 text-xs font-semibold">
-            Gerenciar
+        <div className="flex items-center gap-2">
+          <MapPin className="size-3.5 shrink-0 text-lime-300" />
+          <span className="shrink-0 text-xs text-zinc-500">Treinando em</span>
+          <select
+            value={currentPlaceId ?? ''}
+            onChange={(e) => void setCurrentPlace(e.target.value)}
+            aria-label="Local atual"
+            className="min-w-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1.5 text-sm font-bold text-zinc-100 outline-none"
+          >
+            {places.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <Link
+            to="/ajustes"
+            aria-label="Gerenciar locais"
+            className="shrink-0 rounded-lg bg-zinc-900 p-1.5 text-zinc-400"
+          >
+            <Settings className="size-4" />
           </Link>
         </div>
       )}
@@ -246,18 +248,21 @@ export default function Home() {
 
       {tab === 'rotinas' && (
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold">Minhas rotinas</h2>
-          <span className="text-xs text-zinc-500">{routines?.length ?? 0}</span>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-base font-bold">
+            Minhas rotinas
+            <span className="text-xs font-normal text-zinc-500">{routines?.length ?? 0}</span>
+          </h2>
+          <Link
+            to="/rotina/nova"
+            className="inline-flex items-center gap-1 rounded-lg bg-lime-400/15 px-3 py-1.5 text-xs font-extrabold text-lime-300"
+          >
+            <Plus className="size-3.5" /> Nova
+          </Link>
         </div>
-
-        <Link
-          to="/rotina/nova"
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 py-3 font-bold text-zinc-200"
-        >
-          <Plus className="size-4" /> Nova rotina
-        </Link>
-        <p className="text-[11px] text-zinc-500">Segure o puxador e arraste para reordenar.</p>
+        {routines.length > 1 && (
+          <p className="text-[11px] text-zinc-600">Segure o puxador para reordenar.</p>
+        )}
 
         <div className="space-y-2">
           {orderedRoutines.map((r) => (
