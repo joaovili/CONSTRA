@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Activity, CheckCircle2, Dumbbell, RefreshCw, Settings, Share, Smartphone, TrendingUp, type LucideIcon } from 'lucide-react'
+import { Activity, CheckCircle2, Dumbbell, RefreshCw, Settings, Share, Smartphone, Timer, TrendingUp, X, type LucideIcon } from 'lucide-react'
 import { useInstall } from '../lib/install'
 import { usePwa } from '../lib/pwa'
+import { useRestTimer } from '../lib/restTimer'
+import { formatElapsed } from '../lib/stats'
 
 const TABS: Array<{ to: string; label: string; icon: LucideIcon; end?: boolean }> = [
   { to: '/', label: 'Treinos', icon: Dumbbell, end: true },
@@ -16,6 +18,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [dismissed, setDismissed] = useState(() => localStorage.getItem('logbook-install-dismissed') === '1')
   const showInstall = !standalone && !dismissed && (ios || canPrompt)
   const { needRefresh, offlineReady, updating, update, dismissUpdate, dismissOffline } = usePwa()
+  const { running: resting, remaining, stop: stopRest } = useRestTimer()
 
   function dismissInstall() {
     localStorage.setItem('logbook-install-dismissed', '1')
@@ -99,6 +102,20 @@ export default function Layout({ children }: { children: ReactNode }) {
       )}
 
       <main className="flex-1 overflow-y-auto px-4 pt-4 pb-28">{children}</main>
+
+      {resting && remaining !== null && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-24 z-20 flex justify-center px-4">
+          <button
+            onClick={stopRest}
+            className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-lime-500/40 bg-zinc-900/90 py-2 pr-2 pl-4 text-sm font-bold shadow-lg backdrop-blur-md"
+          >
+            <Timer className="size-4 text-lime-300" />
+            <span className="font-mono tabular-nums text-lime-300">{formatElapsed(remaining * 1000)}</span>
+            <span className="text-zinc-400">descanso</span>
+            <X className="size-4 text-zinc-500" />
+          </button>
+        </div>
+      )}
 
       <nav className="pb-safe absolute inset-x-0 bottom-0 z-10 px-3">
         <div className="mx-auto grid max-w-md grid-cols-4 gap-1 rounded-full border border-zinc-800 bg-zinc-900/60 p-1 shadow-lg backdrop-blur-md">
