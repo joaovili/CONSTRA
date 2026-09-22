@@ -1,12 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { CheckCircle2, GripVertical, Play, Plus, Trash2, X } from 'lucide-react'
-import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { CheckCircle2, Dumbbell, GripVertical, MapPin, Play, Plus, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db } from '../lib/db'
+import { ensureDefaultPlace, setCurrentPlace, sortPlaces } from '../lib/places'
 import { seedIfEmpty } from '../lib/seeds'
+import { getOpenSession, startWorkout } from '../lib/sessions'
 import { formatElapsed } from '../lib/stats'
-import { uid, type Routine } from '../lib/types'
+import type { Routine } from '../lib/types'
 
 interface PendingDelete {
   kind: 'session' | 'routine'
@@ -27,12 +29,25 @@ export default function Home() {
   const location = useLocation()
   const routinesRaw = useLiveQuery(() => db.routines.toArray())
   const routines = useMemo(() => sortRoutines(routinesRaw ?? []), [routinesRaw])
-  const sessions = useLiveQuery(() => db.sessions.orderBy('startedAt').reverse().limit(5).toArray())
+  const sessions = useLiveQuery(() => db.sessions.orderBy('startedAt').reverse().limit(30).toArray())
+  const settings = useLiveQuery(() => db.settings.get('app'))
+  const placesRaw = useLiveQuery(() => db.places.toArray(), [], [])
+  const places = useMemo(() => sortPlaces(placesRaw), [placesRaw])
+  const currentPlaceId = settings?.currentPlaceId ?? places[0]?.id
+  const placeName = useMemo(() => new Map(places.map((p) => [p.id, p.name])), [places])
   const [seeding, setSeeding] = useState(true)
   const [flash, setFlash] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOrder, setDragOrder] = useState<string[] | null>(null)
+  const [tab, setTab] = useState<'rotinas' | 'historico'>('rotinas')
+  const pressTimer = useRef<number | null>(null)
+  const pressStart = useRef<{ x: number; y: number } | null>(null)
+
+  const openSession = useLiveQuery(async () => {
+    const list = await db.sessions.orderBy('startedAt').reverse().toArray()
+    return list.find((s) => !s.finishedAt)
+  })
 
   const orderedRoutines = useMemo(() => {
     if (!dragOrder) return routines
@@ -40,13 +55,36 @@ export default function Home() {
     return dragOrder.map((id) => byId.get(id)).filter((r): r is Routine => !!r)
   }, [routines, dragOrder])
 
+  function clearPressTimer() {
+    if (pressTimer.current !== null) {
+      window.clearTimeout(pressTimer.current)
+      pressTimer.current = null
+    }
+  }
+
+  // Só ativa o arrasto depois de segurar ~0,4s no puxador — evita reordenar
+  // por esbarrão. Mexer antes disso cancela (e deixa rolar a tela).
   function startDrag(e: ReactPointerEvent, id: string) {
     e.currentTarget.setPointerCapture(e.pointerId)
-    setDragId(id)
-    setDragOrder(routines.map((r) => r.id))
+    pressStart.current = { x: e.clientX, y: e.clientY }
+    clearPressTimer()
+    pressTimer.current = window.setTimeout(() => {
+      pressTimer.current = null
+      try {
+        navigator.vibrate?.(10)
+      } catch {}
+      setDragId(id)
+      setDragOrder(routines.map((r) => r.id))
+    }, 400)
   }
 
   function moveDrag(e: ReactPointerEvent) {
+    if (pressTimer.current !== null && pressStart.current) {
+      const dx = Math.abs(e.clientX - pressStart.current.x)
+      const dy = Math.abs(e.clientY - pressStart.current.y)
+      if (dx > 10 || dy > 10) clearPressTimer()
+      return
+    }
     if (!dragId) return
     const el = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-card-id]') as HTMLElement | null
     const overId = el?.dataset.cardId
@@ -64,6 +102,8 @@ export default function Home() {
   }
 
   async function endDrag() {
+    clearPressTimer()
+    pressStart.current = null
     if (dragOrder) {
       await db.transaction('rw', db.routines, async () => {
         for (let i = 0; i < dragOrder.length; i++) await db.routines.update(dragOrder[i], { order: i })
@@ -74,7 +114,7 @@ export default function Home() {
   }
 
   useEffect(() => {
-    seedIfEmpty().finally(() => setSeeding(false))
+    Promise.all([seedIfEmpty(), ensureDefaultPlace()]).finally(() => setSeeding(false))
   }, [])
 
   useEffect(() => {
@@ -102,15 +142,14 @@ export default function Home() {
   }, [sessions])
 
   async function startSession(routine?: Routine) {
-    const id = uid('ws_')
-    await db.sessions.add({
-      id,
-      routineId: routine?.id,
-      routineName: routine?.name ?? 'Treino livre',
-      startedAt: Date.now(),
-      sets: [],
-    })
-    navigate(`/sessao/${id}`)
+    const existing = await getOpenSession()
+    if (existing) {
+      setFlash('Você já tem um treino em aberto')
+      navigate(`/sessao/${existing.id}`)
+      return
+    }
+    const session = await startWorkout(routine)
+    navigate(`/sessao/${session.id}`)
   }
 
   async function confirmPendingDelete() {
@@ -141,13 +180,71 @@ export default function Home() {
         </p>
       </header>
 
+      {places.length > 0 && (
+        <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
+          <MapPin className="size-4 shrink-0 text-lime-300" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-bold tracking-wide text-zinc-500">TREINANDO EM</p>
+            <select
+              value={currentPlaceId ?? ''}
+              onChange={(e) => void setCurrentPlace(e.target.value)}
+              aria-label="Local atual"
+              className="mt-0.5 w-full bg-transparent text-base font-bold outline-none"
+            >
+              {places.map((p) => (
+                <option key={p.id} value={p.id} className="bg-zinc-900">
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Link to="/ajustes" className="shrink-0 rounded-lg bg-zinc-800 px-3 py-2 text-xs font-semibold">
+            Gerenciar
+          </Link>
+        </div>
+      )}
+
+      {openSession && (
+        <div className="rounded-2xl border border-lime-500/40 bg-lime-500/10 p-3">
+          <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-lime-200">
+            <Dumbbell className="size-3.5" /> TREINO EM ANDAMENTO
+          </p>
+          <p className="mt-1 text-lg font-extrabold">{openSession.routineName}</p>
+          <p className="text-xs text-zinc-400">
+            {placeName.get(openSession.placeId ?? '') ?? 'sem local'} •{' '}
+            {openSession.sets.filter((x) => x.done).length} séries feitas
+          </p>
+          <Link
+            to={`/sessao/${openSession.id}`}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-lime-400 py-3 text-sm font-extrabold text-black"
+          >
+            <Play className="size-4" /> Continuar treino
+          </Link>
+        </div>
+      )}
+
       <button
         onClick={() => startSession(undefined)}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime-400 py-4 text-base font-extrabold text-black active:scale-[0.99]"
+        className={`flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-extrabold active:scale-[0.99] ${
+          openSession ? 'border border-zinc-800 bg-zinc-900 text-zinc-100' : 'bg-lime-400 text-black'
+        }`}
       >
         <Plus className="size-5" /> Treino livre (sem rotina)
       </button>
 
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-zinc-900 p-1">
+        {(['rotinas', 'historico'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`rounded-lg py-2 text-sm font-bold ${tab === t ? 'bg-zinc-700 text-lime-300' : 'text-zinc-400'}`}
+          >
+            {t === 'rotinas' ? 'Rotinas' : 'Histórico'}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'rotinas' && (
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold">Minhas rotinas</h2>
@@ -160,6 +257,7 @@ export default function Home() {
         >
           <Plus className="size-4" /> Nova rotina
         </Link>
+        <p className="text-[11px] text-zinc-500">Segure o puxador e arraste para reordenar.</p>
 
         <div className="space-y-2">
           {orderedRoutines.map((r) => (
@@ -216,9 +314,16 @@ export default function Home() {
           )}
         </div>
       </section>
+      )}
 
+      {tab === 'historico' && (
       <section className="space-y-2">
         <h2 className="text-base font-bold">Últimos treinos</h2>
+        {(sessions ?? []).length === 0 && (
+          <p className="rounded-xl border border-dashed border-zinc-800 p-4 text-center text-sm text-zinc-500">
+            Nenhum treino registrado ainda.
+          </p>
+        )}
         {(sessions ?? []).map((s) => (
           <div key={s.id} className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 p-3">
             <Link to={`/sessao/${s.id}`} className="min-w-0 flex-1">
@@ -228,6 +333,7 @@ export default function Home() {
               </div>
               <p className="text-xs text-zinc-500">
                 {s.sets.filter((x) => x.done).length} séries •{' '}
+                {placeName.get(s.placeId ?? '') ?? 'sem local'} •{' '}
                 {s.finishedAt ? `concluído • ${formatElapsed(s.finishedAt - s.startedAt)}` : 'em andamento'}
               </p>
             </Link>
@@ -241,6 +347,7 @@ export default function Home() {
           </div>
         ))}
       </section>
+      )}
 
       {flash && (
         <div

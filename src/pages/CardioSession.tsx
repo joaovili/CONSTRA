@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db } from '../lib/db'
+import { fromLocalInput, toLocalInput } from '../lib/datetime'
 import { formatDuration, formatPace, paceMinPerKm, trainingLoad } from '../lib/stats'
 import {
   ACTIVITY_KINDS,
@@ -304,15 +305,4 @@ function ScaleRow({
 function parseNum(value: string): number | undefined {
   const n = Number(value.replace(',', '.'))
   return value.trim() !== '' && Number.isFinite(n) ? n : undefined
-}
-
-function toLocalInput(ms: number): string {
-  const d = new Date(ms)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-function fromLocalInput(value: string): number {
-  const t = new Date(value).getTime()
-  return Number.isFinite(t) ? t : Date.now()
 }

@@ -1,11 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ArrowLeft, Check, ChevronDown, ChevronRight, Lightbulb, Plus, Trash2, Trophy } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Lightbulb, MapPin, Plus, Trash2, Trophy } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import RestTimer from '../components/RestTimer'
 import WorkoutTimer from '../components/WorkoutTimer'
 import { db, ensureSettings } from '../lib/db'
+import { toLocalInput } from '../lib/datetime'
+import { sortPlaces } from '../lib/places'
+import { getOpenSession } from '../lib/sessions'
 import { detectPR, lastLoad, suggestNext, type PRInfo } from '../lib/stats'
 import { SET_KIND_LABEL, uid, type SetEntry, type SetKind, type WorkoutSession } from '../lib/types'
 
@@ -28,11 +31,14 @@ function SessionView({ session }: { session: WorkoutSession }) {
   const routines = useLiveQuery(() => db.routines.toArray(), [], [])
   const allSessions = useLiveQuery(() => db.sessions.toArray(), [], [])
   const settings = useLiveQuery(() => db.settings.get('app'))
+  const placesRaw = useLiveQuery(() => db.places.toArray(), [], [])
+  const places = useMemo(() => sortPlaces(placesRaw), [placesRaw])
 
   const [q, setQ] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     ensureSettings()
@@ -60,7 +66,7 @@ function SessionView({ session }: { session: WorkoutSession }) {
   }
 
   function blankSet(exerciseId: string, setIndex: number): SetEntry {
-    const prev = lastLoad(allSessions, exerciseId)
+    const prev = lastLoad(allSessions, exerciseId, session.placeId)
     return {
       id: uid('set_'),
       exerciseId,
@@ -103,12 +109,37 @@ function SessionView({ session }: { session: WorkoutSession }) {
 
   async function finish() {
     await db.sessions.update(session.id, { finishedAt: Date.now() })
-    navigate('/')
+  }
+
+  async function reopen() {
+    const open = await getOpenSession()
+    if (open && open.id !== session.id) {
+      setNotice('Já existe um treino em aberto. Encerre-o antes de reabrir este.')
+      return
+    }
+    setNotice('')
+    await db.sessions.update(session.id, { finishedAt: undefined })
+  }
+
+  async function setStartedAt(ms: number | null) {
+    if (ms === null) return
+    await db.sessions.update(session.id, {
+      startedAt: session.finishedAt ? Math.min(ms, session.finishedAt) : ms,
+    })
+  }
+
+  async function setFinishedAt(ms: number | null) {
+    if (ms === null) return
+    await db.sessions.update(session.id, { finishedAt: Math.max(ms, session.startedAt) })
   }
 
   async function deleteThisSession() {
     await db.sessions.delete(session.id)
     navigate('/')
+  }
+
+  async function setSessionPlace(placeId: string) {
+    await db.sessions.update(session.id, { placeId: placeId || undefined })
   }
 
   const doneCount = session.sets.filter((s) => s.done).length
@@ -130,6 +161,25 @@ function SessionView({ session }: { session: WorkoutSession }) {
         <WorkoutTimer startedAt={session.startedAt} finishedAt={session.finishedAt} />
       </div>
 
+      {places.length > 0 && (
+        <div className="flex items-center gap-2">
+          <MapPin className="size-3.5 shrink-0 text-lime-300" />
+          <select
+            value={session.placeId ?? ''}
+            onChange={(e) => void setSessionPlace(e.target.value)}
+            aria-label="Local do treino"
+            className="rounded-lg bg-zinc-900 px-2 py-1.5 text-xs font-semibold text-zinc-200 outline-none"
+          >
+            <option value="">Sem local</option>
+            {places.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <RestTimer defaultSeconds={settings?.restSeconds ?? 90} />
 
       <div className="space-y-4">
@@ -137,7 +187,7 @@ function SessionView({ session }: { session: WorkoutSession }) {
           const ex = exById.get(eid)
           const sets = setsOf(eid)
           const target = routine?.items.find((i) => i.exerciseId === eid)
-          const suggestion = suggestNext(allSessions, eid)
+          const suggestion = suggestNext(allSessions, eid, session.placeId)
           const isCollapsed = collapsed[eid] ?? true
           const doneSets = sets.filter((s) => s.done)
           const top = doneSets.reduce<{ weight: number; reps: number } | null>(
@@ -199,6 +249,7 @@ function SessionView({ session }: { session: WorkoutSession }) {
                         eid,
                         s.weight,
                         s.reps,
+                        session.placeId,
                       )
                     : { isPR: false }
                   return (
@@ -324,21 +375,52 @@ function SessionView({ session }: { session: WorkoutSession }) {
         )}
       </div>
 
-      <button
-        onClick={finish}
-        className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-lime-400 py-4 font-extrabold text-black"
-      >
-        {session.finishedAt && <Check className="size-5" />}
-        {session.finishedAt ? 'Treino concluído (ver início)' : 'Concluir treino'}
-      </button>
-      {session.finishedAt && (
+      {session.finishedAt ? (
+        <div className="flex items-center justify-center gap-1.5 rounded-2xl bg-lime-400/15 py-3 font-extrabold text-lime-300">
+          <Check className="size-5" /> Treino concluído
+        </div>
+      ) : (
         <button
-          onClick={() => db.sessions.update(session.id, { finishedAt: undefined })}
-          className="w-full text-sm text-zinc-500 underline"
+          onClick={finish}
+          className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-lime-400 py-4 font-extrabold text-black"
         >
+          Concluir treino
+        </button>
+      )}
+
+      <div className="space-y-2 rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
+        <p className="text-sm font-bold">Ajustar horários</p>
+        <label className="flex items-center justify-between gap-3 text-sm">
+          <span className="text-zinc-400">Início</span>
+          <input
+            type="datetime-local"
+            value={toLocalInput(session.startedAt)}
+            onChange={(e) => void setStartedAt(parseLocal(e.target.value))}
+            className="rounded-lg bg-zinc-950 px-2 py-2 text-sm outline-none"
+          />
+        </label>
+        <label className="flex items-center justify-between gap-3 text-sm">
+          <span className="text-zinc-400">Término</span>
+          <input
+            type="datetime-local"
+            value={session.finishedAt ? toLocalInput(session.finishedAt) : ''}
+            onChange={(e) => void setFinishedAt(parseLocal(e.target.value))}
+            className="rounded-lg bg-zinc-950 px-2 py-2 text-sm outline-none"
+          />
+        </label>
+        {!session.finishedAt && (
+          <p className="text-[11px] text-zinc-500">
+            Sem término = treino em aberto. Defina um horário para encerrar (útil quando você esquece).
+          </p>
+        )}
+      </div>
+
+      {session.finishedAt && (
+        <button onClick={() => void reopen()} className="w-full text-sm text-zinc-500 underline">
           Reabrir treino
         </button>
       )}
+      {notice && <p className="text-center text-sm text-amber-300">{notice}</p>}
       <button
         onClick={() => setConfirmDelete(true)}
         className="w-full rounded-xl border border-red-900 py-3 text-sm font-bold text-red-400"
@@ -366,4 +448,10 @@ function SessionView({ session }: { session: WorkoutSession }) {
       />
     </div>
   )
+}
+
+/** Valor de datetime-local → ms, ou null se incompleto/inválido. */
+function parseLocal(value: string): number | null {
+  const t = new Date(value).getTime()
+  return Number.isFinite(t) ? t : null
 }
