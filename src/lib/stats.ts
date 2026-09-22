@@ -1,5 +1,10 @@
 import type { WorkoutSession } from './types'
 
+/** Sessão conta pro filtro de local? Sem filtro, tudo conta. */
+function inPlace(s: WorkoutSession, placeId?: string): boolean {
+  return !placeId || s.placeId === placeId
+}
+
 /** 1RM estimado (Epley): peso * (1 + reps/30) */
 export function epley1RM(weight: number, reps: number): number {
   if (reps <= 1) return weight
@@ -20,10 +25,11 @@ export interface ExerciseHistory {
   sessions: HistoryPoint[]
 }
 
-export function historyForExercise(sessions: WorkoutSession[], exerciseId: string): ExerciseHistory {
+export function historyForExercise(sessions: WorkoutSession[], exerciseId: string, placeId?: string): ExerciseHistory {
   const perSession = new Map<number, HistoryPoint>()
   const sorted = [...sessions].sort((a, b) => a.startedAt - b.startedAt)
   for (const s of sorted) {
+    if (!inPlace(s, placeId)) continue
     const sets = s.sets.filter(
       (x) => x.exerciseId === exerciseId && x.done && x.kind !== 'warmup' && x.kind !== 'prep',
     )
@@ -44,9 +50,14 @@ export interface PRInfo {
 }
 
 /** Última carga usada no exercício (para pré-preencher sugestão) */
-export function lastLoad(sessions: WorkoutSession[], exerciseId: string): { weight: number; reps: number } | null {
+export function lastLoad(
+  sessions: WorkoutSession[],
+  exerciseId: string,
+  placeId?: string,
+): { weight: number; reps: number } | null {
   const sorted = [...sessions].sort((a, b) => b.startedAt - a.startedAt)
   for (const s of sorted) {
+    if (!inPlace(s, placeId)) continue
     const sets = s.sets.filter((x) => x.exerciseId === exerciseId && x.done && x.kind === 'normal')
     if (sets.length > 0) {
       const last = sets[sets.length - 1]
@@ -60,8 +71,9 @@ export function lastLoad(sessions: WorkoutSession[], exerciseId: string): { weig
 export function suggestNext(
   sessions: WorkoutSession[],
   exerciseId: string,
+  placeId?: string,
 ): { weight: number; reps: number; hint: string } | null {
-  const hist = historyForExercise(sessions, exerciseId).sessions
+  const hist = historyForExercise(sessions, exerciseId, placeId).sessions
   if (hist.length === 0) return null
   const last = hist[hist.length - 1]
   return {
@@ -76,8 +88,9 @@ export function detectPR(
   exerciseId: string,
   currentWeight: number,
   currentReps: number,
+  placeId?: string,
 ): PRInfo {
-  const hist = historyForExercise(sessions, exerciseId).sessions
+  const hist = historyForExercise(sessions, exerciseId, placeId).sessions
   if (hist.length === 0) return { isPR: currentWeight > 0, type: 'peso', detail: 'Primeiro registro!' }
   const prevMaxWeight = Math.max(...hist.map((h) => h.maxWeight))
   const prevBest1RM = Math.max(...hist.map((h) => h.best1RM))

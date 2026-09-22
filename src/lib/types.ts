@@ -75,15 +75,27 @@ export interface WorkoutSession {
   id: string
   routineId?: string
   routineName: string
+  /** Onde o treino foi feito (academia, casa...). Carga comparável muda por local. */
+  placeId?: string
   startedAt: number
   finishedAt?: number
   sets: SetEntry[]
+}
+
+/** Ambiente de treino: a mesma carga não é comparável entre locais diferentes. */
+export interface Place {
+  id: string
+  name: string
+  note?: string
+  order?: number
+  createdAt: number
 }
 
 export interface AppSettings {
   id: string // sempre 'app'
   unit: 'kg' | 'lbs'
   restSeconds: number
+  currentPlaceId?: string
   installedAt: number
 }
 

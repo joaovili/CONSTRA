@@ -3,6 +3,7 @@ import { TrendingUp } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { db } from '../lib/db'
+import { sortPlaces } from '../lib/places'
 import { historyForExercise } from '../lib/stats'
 import { MUSCLE_GROUPS } from '../lib/types'
 
@@ -17,10 +18,17 @@ const METRICS: Array<{ id: Metric; label: string }> = [
 export default function Progress() {
   const exercises = useLiveQuery(() => db.exercises.orderBy('name').toArray())
   const sessions = useLiveQuery(() => db.sessions.orderBy('startedAt').toArray())
+  const settings = useLiveQuery(() => db.settings.get('app'))
+  const placesRaw = useLiveQuery(() => db.places.toArray(), [], [])
+  const places = useMemo(() => sortPlaces(placesRaw), [placesRaw])
   const [q, setQ] = useState('')
   const [group, setGroup] = useState('Todas')
   const [selected, setSelected] = useState<string | null>(null)
   const [metric, setMetric] = useState<Metric>('maxWeight')
+  const [placeFilter, setPlaceFilter] = useState<string | null>(null)
+
+  const effectivePlace = placeFilter ?? settings?.currentPlaceId ?? 'all'
+  const placeId = effectivePlace === 'all' ? undefined : effectivePlace
 
   const filtered = useMemo(
     () =>
@@ -34,8 +42,8 @@ export default function Progress() {
   const activeEx = (exercises ?? []).find((e) => e.id === activeId)
 
   const hist = useMemo(
-    () => (activeId && sessions ? historyForExercise(sessions, activeId) : null),
-    [activeId, sessions],
+    () => (activeId && sessions ? historyForExercise(sessions, activeId, placeId) : null),
+    [activeId, sessions, placeId],
   )
 
   const chartData = useMemo(
@@ -105,6 +113,27 @@ export default function Progress() {
           ))}
         </select>
       </div>
+
+      {places.length > 0 && (
+        <div className="space-y-2">
+          <label htmlFor="progress-place" className="text-xs font-bold tracking-wide text-zinc-500">
+            LOCAL
+          </label>
+          <select
+            id="progress-place"
+            value={effectivePlace}
+            onChange={(e) => setPlaceFilter(e.target.value)}
+            className="min-h-[52px] w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 text-base font-semibold outline-none focus:border-lime-400"
+          >
+            <option value="all">Todos os locais</option>
+            {places.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {!activeEx ? (
         <p className="text-sm text-zinc-500">Registre um treino para ver gráficos aqui.</p>

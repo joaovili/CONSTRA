@@ -1,14 +1,20 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, CheckCircle2, Download, Share, Upload } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Check, CheckCircle2, Download, MapPin, Plus, Share, Trash2, Upload } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db, ensureSettings } from '../lib/db'
 import { downloadFile, exportRoutinesCSV, importRoutinesCSV } from '../lib/backup'
 import { useInstall } from '../lib/install'
+import { createPlace, deletePlace, setCurrentPlace, sortPlaces } from '../lib/places'
 import { usePwa } from '../lib/pwa'
+import type { Place } from '../lib/types'
 
 export default function Settings() {
   const settings = useLiveQuery(() => db.settings.get('app'))
+  const placesRaw = useLiveQuery(() => db.places.toArray(), [], [])
+  const places = useMemo(() => sortPlaces(placesRaw), [placesRaw])
+  const currentPlaceId = settings?.currentPlaceId
+  const [newPlace, setNewPlace] = useState('')
   const counts = useLiveQuery(async () => ({
     ex: await db.exercises.count(),
     rt: await db.routines.count(),
@@ -54,12 +60,22 @@ export default function Settings() {
     }
   }
 
+  async function addPlace() {
+    const name = newPlace.trim()
+    if (!name) return
+    const place = await createPlace(name)
+    setNewPlace('')
+    if (!settings?.currentPlaceId) await setCurrentPlace(place.id)
+  }
+
   async function wipe() {
-    await db.transaction('rw', [db.exercises, db.routines, db.sessions, db.cardio], async () => {
+    await db.transaction('rw', [db.exercises, db.routines, db.sessions, db.cardio, db.places, db.meta], async () => {
       await db.exercises.clear()
       await db.routines.clear()
       await db.sessions.clear()
       await db.cardio.clear()
+      await db.places.clear()
+      await db.meta.clear()
     })
     setConfirmWipe(false)
     setMsg('Tudo apagado.')
@@ -101,6 +117,44 @@ export default function Settings() {
               {s >= 60 ? `${s / 60}min` : `${s}s`}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="font-bold">Locais</p>
+          <span className="text-xs text-zinc-500">{places.length}</span>
+        </div>
+        <p className="mb-3 text-sm text-zinc-400">
+          A mesma carga não é comparável entre academias. Recorde e sugestão de carga são por local.
+        </p>
+        <div className="space-y-2">
+          {places.map((p) => (
+            <PlaceRow key={p.id} place={p} isCurrent={p.id === currentPlaceId} />
+          ))}
+          {places.length === 0 && (
+            <p className="rounded-xl border border-dashed border-zinc-800 p-3 text-center text-sm text-zinc-500">
+              Nenhum local ainda.
+            </p>
+          )}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <input
+            value={newPlace}
+            onChange={(e) => setNewPlace(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void addPlace()
+            }}
+            placeholder="Nova academia / local"
+            className="min-h-[44px] min-w-0 flex-1 rounded-xl bg-zinc-950 px-3 text-sm outline-none"
+          />
+          <button
+            onClick={() => void addPlace()}
+            disabled={!newPlace.trim()}
+            className="inline-flex items-center gap-1 rounded-xl bg-lime-400 px-3 text-sm font-extrabold text-black disabled:opacity-50"
+          >
+            <Plus className="size-4" /> Add
+          </button>
         </div>
       </div>
 
@@ -218,6 +272,71 @@ export default function Settings() {
         confirmLabel="Apagar tudo mesmo assim"
         onConfirm={wipe}
         onClose={() => setConfirmWipe(false)}
+      />
+    </div>
+  )
+}
+
+function PlaceRow({ place, isCurrent }: { place: Place; isCurrent: boolean }) {
+  const [name, setName] = useState(place.name)
+  const [confirmDel, setConfirmDel] = useState(false)
+
+  async function save() {
+    const trimmed = name.trim()
+    if (!trimmed || trimmed === place.name) {
+      setName(place.name)
+      return
+    }
+    await db.places.update(place.id, { name: trimmed })
+    setName(trimmed)
+  }
+
+  return (
+    <div className="flex items-center gap-2 rounded-xl bg-zinc-950 p-2">
+      <button
+        onClick={() => void setCurrentPlace(place.id)}
+        aria-pressed={isCurrent}
+        title="Definir como local atual"
+        className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-2 text-xs font-bold ${isCurrent ? 'bg-lime-400 text-black' : 'bg-zinc-800 text-zinc-300'}`}
+      >
+        <MapPin className="size-3.5" /> {isCurrent ? 'Atual' : 'Usar'}
+      </button>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur()
+        }}
+        aria-label="Nome do local"
+        className="min-h-[40px] min-w-0 flex-1 rounded-lg bg-zinc-900 px-2 text-sm font-semibold outline-none focus:ring-1 focus:ring-lime-400"
+      />
+      <button
+        onClick={() => setConfirmDel(true)}
+        aria-label="Excluir local"
+        className="inline-flex shrink-0 items-center rounded-lg bg-zinc-800 px-3 py-2"
+      >
+        <Trash2 className="size-4" />
+      </button>
+
+      <ConfirmDialog
+        open={confirmDel}
+        title="Excluir local?"
+        description={
+          <>
+            <span className="font-bold text-zinc-200">{place.name}</span>
+            <br />
+            Treinos deste local ficam sem local (não somem).
+            <br />
+            <span className="text-red-300">Não dá pra desfazer.</span>
+          </>
+        }
+        confirmLabel="Excluir local"
+        onConfirm={async () => {
+          await deletePlace(place.id)
+          setConfirmDel(false)
+        }}
+        onClose={() => setConfirmDel(false)}
       />
     </div>
   )
