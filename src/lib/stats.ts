@@ -104,6 +104,17 @@ export function formatPace(pace: number | null): string | null {
   return `${min}:${String(sec).padStart(2, '0')}/km`
 }
 
+/** Cronômetro: "mm:ss" ou "h:mm:ss" a partir de milissegundos. */
+export function formatElapsed(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  const mm = String(m).padStart(2, '0')
+  const ss = String(s).padStart(2, '0')
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`
+}
+
 /** Duração legível: "45min" ou "1h05". */
 export function formatDuration(min?: number): string | null {
   if (!min || min <= 0) return null

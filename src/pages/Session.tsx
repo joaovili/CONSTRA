@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import RestTimer from '../components/RestTimer'
+import WorkoutTimer from '../components/WorkoutTimer'
 import { db, ensureSettings } from '../lib/db'
 import { detectPR, lastLoad, suggestNext, type PRInfo } from '../lib/stats'
 import { SET_KIND_LABEL, uid, type SetEntry, type SetKind, type WorkoutSession } from '../lib/types'
@@ -124,7 +125,10 @@ function SessionView({ session }: { session: WorkoutSession }) {
         <span className="text-xs text-zinc-500">{new Date(session.startedAt).toLocaleString('pt-BR')}</span>
       </div>
 
-      <h1 className="text-2xl font-extrabold">{session.routineName}</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-extrabold">{session.routineName}</h1>
+        <WorkoutTimer startedAt={session.startedAt} finishedAt={session.finishedAt} />
+      </div>
 
       <RestTimer defaultSeconds={settings?.restSeconds ?? 90} />
 

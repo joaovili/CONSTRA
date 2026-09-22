@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db } from '../lib/db'
 import { seedIfEmpty } from '../lib/seeds'
+import { formatElapsed } from '../lib/stats'
 import { uid, type Routine } from '../lib/types'
 
 interface PendingDelete {
@@ -227,7 +228,7 @@ export default function Home() {
               </div>
               <p className="text-xs text-zinc-500">
                 {s.sets.filter((x) => x.done).length} séries •{' '}
-                {s.finishedAt ? `concluído` : 'em andamento'}
+                {s.finishedAt ? `concluído • ${formatElapsed(s.finishedAt - s.startedAt)}` : 'em andamento'}
               </p>
             </Link>
             <button
