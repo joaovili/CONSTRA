@@ -1,20 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import {
-  acquireWakeLock,
-  notifyRestDone,
-  playBeep,
-  releaseWakeLock,
-  requestNotifyPermission,
-  unlockAudio,
-  vibrate,
-} from './alerts'
+import { acquireWakeLock, playBeep, releaseWakeLock, unlockAudio, vibrate } from './alerts'
 import { loadRest, RestTimerContext, saveRest } from './restTimer'
 
 /**
  * Timer de descanso global: persiste em localStorage como `endsAt`, então
- * sobrevive a navegação e reload. Ao zerar, dispara som + vibração +
- * notificação local. Só alerta a transição dentro da sessão (um descanso que
- * venceu com o app fechado é apenas limpo).
+ * sobrevive a navegação e reload. Ao zerar, dispara som + vibração. Só alerta
+ * a transição dentro da sessão (um descanso que venceu com o app fechado é
+ * apenas limpo).
  */
 export function RestTimerProvider({ children }: { children: ReactNode }) {
   const [endsAt, setEndsAt] = useState<number | null>(() => loadRest()?.endsAt ?? null)
@@ -36,7 +28,6 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 
   const start = useCallback((seconds: number) => {
     unlockAudio()
-    requestNotifyPermission()
     const end = Date.now() + seconds * 1000
     firedRef.current = false
     setTotalSeconds(seconds)
@@ -69,7 +60,6 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
         firedRef.current = true
         playBeep()
         vibrate()
-        void notifyRestDone()
         setEndsAt(null)
         saveRest(null)
         releaseWakeLock()

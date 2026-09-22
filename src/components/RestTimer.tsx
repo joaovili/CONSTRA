@@ -53,7 +53,7 @@ export default function RestTimer({ defaultSeconds = 90 }: { defaultSeconds?: nu
           <Sun className="size-3.5" /> Tela ligada
         </button>
         <span className="flex items-center gap-1 text-[11px] text-zinc-500">
-          {running ? 'Avisa no fim (som + notificação)' : 'Som, vibração e notificação no fim'}
+          {running ? 'Avisa no fim (som + vibração)' : 'Som e vibração no fim'}
         </span>
       </div>
     </div>

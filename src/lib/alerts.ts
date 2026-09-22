@@ -1,4 +1,4 @@
-/** Alertas do descanso: som (Web Audio), vibração, notificação local e Wake Lock. */
+/** Alertas do descanso: som (Web Audio), vibração e Wake Lock. */
 
 let audioCtx: AudioContext | null = null
 
@@ -49,27 +49,6 @@ export function playBeep() {
 export function vibrate() {
   try {
     navigator.vibrate?.([200, 100, 200])
-  } catch {}
-}
-
-/** Pede permissão de notificação (no iOS só aparece com o PWA instalado). */
-export function requestNotifyPermission() {
-  try {
-    if ('Notification' in window && Notification.permission === 'default') void Notification.requestPermission()
-  } catch {}
-}
-
-export async function notifyRestDone() {
-  try {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return
-    const reg = await navigator.serviceWorker?.getRegistration()
-    if (!reg) return
-    await reg.showNotification('Descanso acabou 💪', {
-      body: 'Hora da próxima série.',
-      tag: 'rest-timer',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-    })
   } catch {}
 }
 
