@@ -41,6 +41,10 @@ class LogbookDB extends Dexie {
         await tx.table('sessions').update(s.id, { routineItems: items?.map((it) => ({ ...it })) ?? [] })
       }
     })
+    // Índice para casar a biblioteca local com os exercícios da AscendAPI.
+    this.version(6).stores({
+      exercises: 'id, name, muscleGroup, equipment, ascendId',
+    })
   }
 }
 

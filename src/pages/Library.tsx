@@ -1,10 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Dumbbell, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
+import ExerciseInfo from '../components/ExerciseInfo'
 import { db } from '../lib/db'
-import type { Equipment, MuscleGroup } from '../lib/types'
+import type { Equipment, Exercise, MuscleGroup } from '../lib/types'
 import { MUSCLE_GROUPS, uid } from '../lib/types'
 
 const MUSCLES = MUSCLE_GROUPS
@@ -21,6 +22,7 @@ export default function Library() {
   const [uni, setUni] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [pendingId, setPendingId] = useState<string | null>(null)
+  const [infoEx, setInfoEx] = useState<Exercise | null>(null)
 
   const all = exercises ?? []
 
@@ -131,18 +133,36 @@ export default function Library() {
 
       <div className="space-y-2">
         {filtered.map((e) => (
-          <div key={e.id} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 p-3">
-            <div>
-              <p className="font-semibold leading-tight">{e.name}</p>
-              <p className="text-xs text-zinc-500">
-                {e.muscleGroup} • {e.equipment}
-                {e.unilateral ? ' • unilateral' : ''}
-              </p>
-            </div>
+          <div key={e.id} className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900 p-3">
+            <button
+              onClick={() => setInfoEx(e)}
+              aria-label={`Ver execução de ${e.name}`}
+              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+            >
+              {e.gifUrl ? (
+                <img
+                  src={e.gifUrl}
+                  alt=""
+                  loading="lazy"
+                  className="size-14 shrink-0 rounded-lg bg-zinc-950 object-cover"
+                />
+              ) : (
+                <span className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-zinc-950 text-zinc-600">
+                  <Dumbbell className="size-6" />
+                </span>
+              )}
+              <span className="min-w-0">
+                <span className="block truncate font-semibold capitalize leading-tight">{e.name}</span>
+                <span className="block text-xs text-zinc-500">
+                  {e.muscleGroup} • {e.equipment}
+                  {e.unilateral ? ' • unilateral' : ''}
+                </span>
+              </span>
+            </button>
             <button
               onClick={() => setPendingId(e.id)}
               aria-label="Excluir exercício"
-              className="inline-flex items-center rounded-lg bg-zinc-800 px-2 py-1 text-sm"
+              className="inline-flex shrink-0 items-center rounded-lg bg-zinc-800 px-2 py-1 text-sm"
             >
               <Trash2 className="size-4" />
             </button>
@@ -169,6 +189,8 @@ export default function Library() {
         onConfirm={remove}
         onClose={() => setPendingId(null)}
       />
+
+      <ExerciseInfo exercise={infoEx} onClose={() => setInfoEx(null)} />
     </div>
   )
 }

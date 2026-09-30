@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ArrowLeft, Check, ChevronDown, ChevronRight, Lightbulb, MapPin, Plus, Trash2, Trophy } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Info, Lightbulb, MapPin, Plus, Trash2, Trophy } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
+import ExerciseInfo from '../components/ExerciseInfo'
 import RestTimer from '../components/RestTimer'
 import WorkoutTimer from '../components/WorkoutTimer'
 import { db, ensureSettings } from '../lib/db'
@@ -10,7 +11,7 @@ import { toLocalInput } from '../lib/datetime'
 import { sortPlaces } from '../lib/places'
 import { getOpenSession } from '../lib/sessions'
 import { detectPR, lastLoad, suggestNext, type PRInfo } from '../lib/stats'
-import { SET_KIND_LABEL, uid, type SetEntry, type SetKind, type WorkoutSession } from '../lib/types'
+import { SET_KIND_LABEL, uid, type Exercise, type SetEntry, type SetKind, type WorkoutSession } from '../lib/types'
 
 /**
  * Loader: busca a sessão e só renderiza a view quando ela existe.
@@ -38,6 +39,7 @@ function SessionView({ session }: { session: WorkoutSession }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [notice, setNotice] = useState('')
+  const [infoEx, setInfoEx] = useState<Exercise | null>(null)
 
   useEffect(() => {
     ensureSettings()
@@ -205,7 +207,7 @@ function SessionView({ session }: { session: WorkoutSession }) {
                   aria-expanded={!isCollapsed}
                   className="min-w-0 flex-1 text-left"
                 >
-                  <p className="flex items-center font-extrabold leading-tight">
+                  <p className="flex items-center font-extrabold leading-tight capitalize">
                     {isCollapsed ? (
                       <ChevronRight className="mr-1 size-4 shrink-0 text-zinc-500" />
                     ) : (
@@ -226,6 +228,15 @@ function SessionView({ session }: { session: WorkoutSession }) {
                     </p>
                   )}
                 </button>
+                {ex && (
+                  <button
+                    onClick={() => setInfoEx(ex)}
+                    aria-label={`Ver execução de ${ex.name}`}
+                    className="inline-flex shrink-0 items-center rounded-xl bg-zinc-800 p-2 text-lime-300"
+                  >
+                    <Info className="size-5" />
+                  </button>
+                )}
                 <button
                   onClick={() => addSet(eid)}
                   className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-lime-400 px-3 py-2 text-sm font-extrabold text-black"
@@ -446,6 +457,8 @@ function SessionView({ session }: { session: WorkoutSession }) {
         onConfirm={deleteThisSession}
         onClose={() => setConfirmDelete(false)}
       />
+
+      <ExerciseInfo exercise={infoEx} onClose={() => setInfoEx(null)} />
     </div>
   )
 }

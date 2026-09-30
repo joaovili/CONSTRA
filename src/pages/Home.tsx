@@ -1,11 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { CheckCircle2, Dumbbell, GripVertical, MapPin, Play, Plus, Settings, Trash2, X } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db } from '../lib/db'
+import { bootstrapLibrary, getAscendProgress, subscribeAscendProgress } from '../lib/ascendSync'
 import { ensureDefaultPlace, setCurrentPlace, sortPlaces } from '../lib/places'
-import { seedIfEmpty } from '../lib/seeds'
 import { getOpenSession, startWorkout } from '../lib/sessions'
 import { formatElapsed } from '../lib/stats'
 import type { Routine } from '../lib/types'
@@ -113,8 +113,10 @@ export default function Home() {
     setDragOrder(null)
   }
 
+  const ascendProgress = useSyncExternalStore(subscribeAscendProgress, getAscendProgress, getAscendProgress)
+
   useEffect(() => {
-    Promise.all([seedIfEmpty(), ensureDefaultPlace()]).finally(() => setSeeding(false))
+    Promise.all([bootstrapLibrary(), ensureDefaultPlace()]).finally(() => setSeeding(false))
   }, [])
 
   useEffect(() => {
@@ -179,6 +181,13 @@ export default function Home() {
           {totalSessions ?? 0} treinos registrados • anote carga e veja a progressão
         </p>
       </header>
+
+      {ascendProgress?.running && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-400">
+          Preparando biblioteca de exercícios…{' '}
+          {ascendProgress.total > 0 ? `${ascendProgress.loaded}/${ascendProgress.total}` : ''}
+        </div>
+      )}
 
       {places.length > 0 && (
         <div className="flex items-center gap-2">
@@ -269,7 +278,7 @@ export default function Home() {
             <div
               key={r.id}
               data-card-id={r.id}
-              className={`rounded-2xl border border-zinc-800 bg-zinc-900 p-3 ${dragId === r.id ? 'opacity-60' : ''}`}
+              className={`select-none rounded-2xl border border-zinc-800 bg-zinc-900 p-3 [-webkit-touch-callout:none] ${dragId === r.id ? 'opacity-60' : ''}`}
             >
               <div className="flex items-center gap-1">
                 <button

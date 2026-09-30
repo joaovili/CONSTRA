@@ -39,6 +39,19 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: 'index.html',
+        runtimeCaching: [
+          {
+            // GIFs de execução da AscendAPI. As URLs rotacionam toda segunda
+            // 00:00 UTC, então o cache expira antes disso (6 dias).
+            urlPattern: /^https:\/\/static\.exercisedb\.dev\/.*\.gif$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'ascend-gifs',
+              expiration: { maxEntries: 500, maxAgeSeconds: 6 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],
