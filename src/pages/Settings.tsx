@@ -21,7 +21,6 @@ export default function Settings() {
     ws: await db.sessions.count(),
     cd: await db.cardio.count(),
   }))
-  const ascendCount = useLiveQuery(async () => (await db.exercises.toArray()).filter((e) => e.source === 'ascend').length)
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
   const [confirmWipe, setConfirmWipe] = useState(false)
@@ -95,13 +94,10 @@ export default function Settings() {
       </div>
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
-        <div className="mb-1 flex items-center justify-between">
-          <p className="font-bold">Biblioteca de exercícios</p>
-          <span className="text-xs text-zinc-500">{ascendCount ?? 0} da AscendAPI</span>
-        </div>
+        <p className="mb-1 font-bold">Biblioteca de exercícios</p>
         <p className="text-sm text-zinc-400">
-          Seus exercícios e a lista padrão ficam no aparelho. Exercícios da AscendAPI (com GIF e passo a passo) são
-          baixados um a um, só quando você busca e escolhe — nada de catálogo inteiro.
+          A base de exercícios vem pronta com o app (AscendAPI). Os GIFs e o passo a passo são baixados só quando você
+          abre um exercício, e ficam em cache para uso offline.
         </p>
       </div>
 

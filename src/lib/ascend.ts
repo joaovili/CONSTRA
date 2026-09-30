@@ -3,14 +3,14 @@ import type { Equipment, Exercise, MuscleGroup } from './types'
 /**
  * Cliente da biblioteca AscendAPI (ExerciseDB V1, tier gratuito).
  *
- * Busca sob demanda: nada do catálogo é baixado em massa. Consultamos a API
- * quando o usuário procura um exercício e só o escolhido é salvo localmente
- * (ver `ascendImport`). Os GIFs (180p) rotacionam toda segunda 00:00 UTC, então
- * a mídia é rebuscada ao abrir o exercício (`ExerciseInfo`).
+ * A lista completa de exercícios (sem GIF) é empacotada no app — ver
+ * `ascendCatalog` e `public/ascend-catalog.json`. Só os GIFs (180p) são
+ * buscados na API, ao abrir um exercício, porque as URLs rotacionam toda
+ * segunda 00:00 UTC.
  */
 const ASCEND_BASE = 'https://oss.exercisedb.dev/api/v1'
 
-/** Formato retornado pela AscendAPI. */
+/** Formato retornado pela AscendAPI (detalhe de um exercício). */
 export interface AscendExercise {
   exerciseId: string
   name: string
@@ -21,6 +21,9 @@ export interface AscendExercise {
   secondaryMuscles: string[]
   instructions: string[]
 }
+
+/** Item do catálogo empacotado no app (mesmo formato, sem `gifUrl`). */
+export type AscendCatalogEntry = Omit<AscendExercise, 'gifUrl'>
 
 const RETRY_DELAY_MS = 2100 // tier gratuito limita a ~1 req / 2s
 
@@ -48,16 +51,7 @@ async function fetchJson<T>(url: string, retries = 5): Promise<T> {
   }
 }
 
-/** Busca exercícios por termo (fuzzy). Retorna poucos campos. */
-export async function searchAscend(search: string): Promise<Array<{ exerciseId: string; name: string; gifUrl: string }>> {
-  const q = search.trim()
-  if (!q) return []
-  const url = `${ASCEND_BASE}/exercises/search?search=${encodeURIComponent(q)}`
-  const json = await fetchJson<{ success: boolean; data: Array<{ exerciseId: string; name: string; gifUrl: string }> }>(url)
-  return json.data ?? []
-}
-
-/** Busca um exercício completo pelo id estável. */
+/** Busca um exercício completo (com GIF e instruções) pelo id estável. */
 export async function getAscendExercise(exerciseId: string): Promise<AscendExercise | null> {
   const json = await fetchJson<{ success: boolean; data: AscendExercise }>(
     `${ASCEND_BASE}/exercises/${encodeURIComponent(exerciseId)}`,
@@ -65,22 +59,21 @@ export async function getAscendExercise(exerciseId: string): Promise<AscendExerc
   return json.data ?? null
 }
 
-/** Exercício da Ascend → registro local. `id` é determinístico por ascendId. */
-export function toLocalExercise(ex: AscendExercise, createdAt = Date.now()): Exercise {
+/** Item do catálogo → registro local. `id` é determinístico por ascendId. */
+export function catalogEntryToLocal(entry: AscendCatalogEntry, createdAt = Date.now(), id?: string): Exercise {
   return {
-    id: `ex_as_${ex.exerciseId}`,
-    name: ex.name,
-    muscleGroup: muscleGroupFor(ex.targetMuscles, ex.bodyParts),
-    equipment: equipmentFor(ex.equipments),
-    unilateral: isUnilateral(ex.name),
+    id: id ?? `ex_as_${entry.exerciseId}`,
+    name: entry.name,
+    muscleGroup: muscleGroupFor(entry.targetMuscles, entry.bodyParts),
+    equipment: equipmentFor(entry.equipments),
+    unilateral: isUnilateral(entry.name),
     builtin: true,
     source: 'ascend',
-    ascendId: ex.exerciseId,
-    gifUrl: ex.gifUrl,
-    bodyParts: ex.bodyParts,
-    targetMuscles: ex.targetMuscles,
-    secondaryMuscles: ex.secondaryMuscles,
-    instructions: ex.instructions,
+    ascendId: entry.exerciseId,
+    bodyParts: entry.bodyParts,
+    targetMuscles: entry.targetMuscles,
+    secondaryMuscles: entry.secondaryMuscles,
+    instructions: entry.instructions,
     createdAt,
   }
 }

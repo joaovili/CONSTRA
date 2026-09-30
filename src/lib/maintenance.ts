@@ -13,21 +13,17 @@ const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ')
 
 async function runRepair(): Promise<void> {
   await db.transaction('rw', [db.exercises, db.routines, db.sessions, db.meta], async () => {
-    // Migração: a AscendAPI não é mais baixada em massa. Remove o catálogo
-    // antigo importado de uma vez (source 'ascend') e as referências dele nas
-    // rotinas. Exercícios criados por você não são tocados. Roda 1x.
-    if (!(await db.meta.get('repair-ascend-on-demand'))) {
-      const legacy = await db.exercises.filter((e) => e.source === 'ascend').toArray()
-      if (legacy.length > 0) {
-        const ids = new Set(legacy.map((e) => e.id))
-        for (const r of await db.routines.toArray()) {
-          const items = r.items.filter((it) => !ids.has(it.exerciseId))
-          if (items.length !== r.items.length) await db.routines.update(r.id, { items, updatedAt: Date.now() })
-        }
-        await db.exercises.bulkDelete(legacy.map((e) => e.id))
+    // Migração: a base de exercícios passa a ser a AscendAPI (empacotada no
+    // app). Remove os que não são dela (lista semeada e os criados por você).
+    // Só roda depois que a base Ascend já está carregada. Roda 1x.
+    if (!(await db.meta.get('base-ascend-purge'))) {
+      const ascend = await db.exercises.filter((e) => e.source === 'ascend').count()
+      if (ascend > 0) {
+        const toDelete = (await db.exercises.toArray()).filter((e) => e.source !== 'ascend').map((e) => e.id)
+        if (toDelete.length > 0) await db.exercises.bulkDelete(toDelete)
       }
       await db.meta.delete('ascend-sync')
-      await db.meta.put({ id: 'repair-ascend-on-demand', at: Date.now() })
+      await db.meta.put({ id: 'base-ascend-purge', at: Date.now() })
     }
 
     if (await db.meta.get('repair-v2')) return

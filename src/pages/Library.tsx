@@ -2,7 +2,6 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ArrowLeft, Dumbbell, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import AscendSearch from '../components/AscendSearch'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ExerciseInfo from '../components/ExerciseInfo'
 import { db } from '../lib/db'
@@ -26,13 +25,14 @@ export default function Library() {
   const [infoEx, setInfoEx] = useState<Exercise | null>(null)
 
   const all = exercises ?? []
-  const importedAscendIds = new Set(all.filter((e) => e.ascendId).map((e) => e.ascendId as string))
 
   const filtered = all.filter((e) => {
     if (muscle !== 'Todas' && e.muscleGroup !== muscle) return false
     if (q && !e.name.toLowerCase().includes(q.toLowerCase())) return false
     return true
   })
+  // A base tem ~1500 itens: renderiza um pedaço e deixa o resto para a busca.
+  const shown = filtered.slice(0, 100)
 
   async function create() {
     const n = name.trim()
@@ -131,10 +131,11 @@ export default function Library() {
 
       <p className="text-xs text-zinc-500">
         {filtered.length} {filtered.length === 1 ? 'exercício' : 'exercícios'}
+        {shown.length < filtered.length ? ' • mostrando os 100 primeiros' : ''}
       </p>
 
       <div className="space-y-2">
-        {filtered.map((e) => (
+        {shown.map((e) => (
           <div key={e.id} className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900 p-3">
             <button
               onClick={() => setInfoEx(e)}
@@ -158,7 +159,6 @@ export default function Library() {
                 <span className="block text-xs text-zinc-500">
                   {e.muscleGroup} • {e.equipment}
                   {e.unilateral ? ' • unilateral' : ''}
-                  {e.source === 'ascend' ? ' • AscendAPI' : ''}
                 </span>
               </span>
             </button>
@@ -171,10 +171,8 @@ export default function Library() {
             </button>
           </div>
         ))}
-        {filtered.length === 0 && <p className="text-sm text-zinc-500">Nada encontrado. Tente a busca online abaixo.</p>}
+        {filtered.length === 0 && <p className="text-sm text-zinc-500">Nada encontrado.</p>}
       </div>
-
-      <AscendSearch query={q} imported={importedAscendIds} onPick={setInfoEx} />
 
       <ConfirmDialog
         open={pendingId !== null}

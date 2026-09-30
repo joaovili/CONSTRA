@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { db } from '../lib/db'
+import { bootstrapLibrary } from '../lib/ascendCatalog'
 import { ensureDefaultPlace, setCurrentPlace, sortPlaces } from '../lib/places'
-import { seedIfEmpty } from '../lib/seeds'
 import { getOpenSession, startWorkout } from '../lib/sessions'
 import { formatElapsed } from '../lib/stats'
 import type { Routine } from '../lib/types'
@@ -114,7 +114,7 @@ export default function Home() {
   }
 
   useEffect(() => {
-    Promise.all([seedIfEmpty(), ensureDefaultPlace()]).finally(() => setSeeding(false))
+    Promise.all([bootstrapLibrary(), ensureDefaultPlace()]).finally(() => setSeeding(false))
   }, [])
 
   useEffect(() => {

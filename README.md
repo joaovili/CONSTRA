@@ -3,7 +3,8 @@
 Logbook universal para anotar **carga × reps** de cada exercício e ver a progressão. Mobile-first, offline, instalável no iPhone via Safari.
 
 - 📱 PWA: instala na home, abre fullscreen, funciona sem internet
-- 📚 Biblioteca de exercícios (40 seed) + criar os seus
+- 📚 Base de ~1500 exercícios (AscendAPI) empacotada no app + criar os seus
+- 🖼️ GIF de execução e passo a passo buscados só ao abrir o exercício (com cache offline)
 - 🏋️ Rotinas editáveis + treino livre
 - ✅ Sessão com sugestão de carga, timer de descanso, badge de PR
 - 📈 Gráfico carga máx / volume / 1RM estimado por exercício
