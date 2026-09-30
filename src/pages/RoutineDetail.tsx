@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import AscendSearch from '../components/AscendSearch'
 import { db } from '../lib/db'
 import type { Routine, RoutineItem } from '../lib/types'
 import { uid } from '../lib/types'
@@ -27,6 +28,7 @@ function RoutineEditor({ routine }: { routine?: Routine }) {
   const [q, setQ] = useState('')
 
   const exById = new Map(exercises.map((e) => [e.id, e]))
+  const importedAscendIds = new Set(exercises.filter((e) => e.ascendId).map((e) => e.ascendId as string))
   const filtered = exercises.filter((e) => !q || e.name.toLowerCase().includes(q.toLowerCase())).slice(0, 20)
 
   function applyItems(next: RoutineItem[]) {
@@ -189,6 +191,9 @@ function RoutineEditor({ routine }: { routine?: Routine }) {
             </button>
           ))}
           {filtered.length === 0 && <p className="px-1 text-sm text-zinc-500">Nada encontrado.</p>}
+        </div>
+        <div className="mt-2">
+          <AscendSearch query={q} imported={importedAscendIds} onPick={(ex) => addExercise(ex.id)} />
         </div>
         <Link
           to="/biblioteca"

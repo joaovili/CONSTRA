@@ -38,11 +38,11 @@ export interface Exercise {
   unilateral: boolean
   builtin?: boolean
   createdAt: number
-  /** 'ascend' = biblioteca padrão da AscendAPI (tem GIF e instruções). */
+  /** 'ascend' = importado da AscendAPI sob demanda (tem GIF e instruções). */
   source?: 'ascend'
   /** id estável na AscendAPI (ex: "EIeI8Vf"). Nunca muda. */
   ascendId?: string
-  /** URL do GIF. Rotaciona toda segunda 00:00 UTC — refrescada a cada sync. */
+  /** URL do GIF. Rotaciona toda segunda 00:00 UTC — rebuscada ao abrir o exercício. */
   gifUrl?: string
   bodyParts?: string[]
   targetMuscles?: string[]

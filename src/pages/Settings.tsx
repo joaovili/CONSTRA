@@ -1,8 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, CheckCircle2, Download, MapPin, Plus, Share, Trash2, Upload } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ConfirmDialog from '../components/ConfirmDialog'
-import { getAscendProgress, getAscendState, subscribeAscendProgress, syncAscendLibrary } from '../lib/ascendSync'
 import { db, ensureSettings } from '../lib/db'
 import { downloadFile, exportRoutinesCSV, importRoutinesCSV } from '../lib/backup'
 import { useInstall } from '../lib/install'
@@ -23,11 +22,8 @@ export default function Settings() {
     cd: await db.cardio.count(),
   }))
   const ascendCount = useLiveQuery(async () => (await db.exercises.toArray()).filter((e) => e.source === 'ascend').length)
-  const ascendState = useLiveQuery(() => getAscendState())
-  const ascendProgress = useSyncExternalStore(subscribeAscendProgress, getAscendProgress, getAscendProgress)
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
-  const [ascendMsg, setAscendMsg] = useState('')
   const [confirmWipe, setConfirmWipe] = useState(false)
   const [checking, setChecking] = useState(false)
   const [updateMsg, setUpdateMsg] = useState('')
@@ -62,16 +58,6 @@ export default function Settings() {
       setMsg('Arquivo inválido.')
     } finally {
       e.target.value = ''
-    }
-  }
-
-  async function syncAscend() {
-    setAscendMsg('')
-    try {
-      await syncAscendLibrary()
-      setAscendMsg('Biblioteca atualizada!')
-    } catch {
-      setAscendMsg('Falha ao sincronizar. Verifique a conexão.')
     }
   }
 
@@ -113,23 +99,10 @@ export default function Settings() {
           <p className="font-bold">Biblioteca de exercícios</p>
           <span className="text-xs text-zinc-500">{ascendCount ?? 0} da AscendAPI</span>
         </div>
-        <p className="mb-3 text-sm text-zinc-400">
-          Padrão da AscendAPI, com GIF de execução e passo a passo.{' '}
-          {ascendState ? `Atualizada em ${new Date(ascendState.at).toLocaleDateString('pt-BR')}.` : 'Ainda não sincronizada.'}
+        <p className="text-sm text-zinc-400">
+          Seus exercícios e a lista padrão ficam no aparelho. Exercícios da AscendAPI (com GIF e passo a passo) são
+          baixados um a um, só quando você busca e escolhe — nada de catálogo inteiro.
         </p>
-        {ascendProgress?.running ? (
-          <p className="text-sm font-bold text-lime-300">
-            Sincronizando… {ascendProgress.total > 0 ? `${ascendProgress.loaded}/${ascendProgress.total}` : ''}
-          </p>
-        ) : (
-          <button
-            onClick={() => void syncAscend()}
-            className="w-full rounded-xl bg-lime-400 py-3 text-sm font-extrabold text-black"
-          >
-            Sincronizar agora
-          </button>
-        )}
-        {ascendMsg && <p className="mt-2 text-sm text-lime-300">{ascendMsg}</p>}
       </div>
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3">

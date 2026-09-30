@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ArrowLeft, Dumbbell, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import AscendSearch from '../components/AscendSearch'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ExerciseInfo from '../components/ExerciseInfo'
 import { db } from '../lib/db'
@@ -25,6 +26,7 @@ export default function Library() {
   const [infoEx, setInfoEx] = useState<Exercise | null>(null)
 
   const all = exercises ?? []
+  const importedAscendIds = new Set(all.filter((e) => e.ascendId).map((e) => e.ascendId as string))
 
   const filtered = all.filter((e) => {
     if (muscle !== 'Todas' && e.muscleGroup !== muscle) return false
@@ -156,6 +158,7 @@ export default function Library() {
                 <span className="block text-xs text-zinc-500">
                   {e.muscleGroup} • {e.equipment}
                   {e.unilateral ? ' • unilateral' : ''}
+                  {e.source === 'ascend' ? ' • AscendAPI' : ''}
                 </span>
               </span>
             </button>
@@ -168,8 +171,10 @@ export default function Library() {
             </button>
           </div>
         ))}
-        {filtered.length === 0 && <p className="text-sm text-zinc-500">Nada encontrado.</p>}
+        {filtered.length === 0 && <p className="text-sm text-zinc-500">Nada encontrado. Tente a busca online abaixo.</p>}
       </div>
+
+      <AscendSearch query={q} imported={importedAscendIds} onPick={setInfoEx} />
 
       <ConfirmDialog
         open={pendingId !== null}

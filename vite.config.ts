@@ -41,8 +41,8 @@ export default defineConfig({
         navigateFallback: 'index.html',
         runtimeCaching: [
           {
-            // GIFs de execução da AscendAPI. As URLs rotacionam toda segunda
-            // 00:00 UTC, então o cache expira antes disso (6 dias).
+            // GIFs de execução da AscendAPI (baixados sob demanda). As URLs
+            // rotacionam toda segunda 00:00 UTC, então o cache expira antes (6 dias).
             urlPattern: /^https:\/\/static\.exercisedb\.dev\/.*\.gif$/,
             handler: 'CacheFirst',
             options: {

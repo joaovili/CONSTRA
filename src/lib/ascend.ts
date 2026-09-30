@@ -3,9 +3,10 @@ import type { Equipment, Exercise, MuscleGroup } from './types'
 /**
  * Cliente da biblioteca AscendAPI (ExerciseDB V1, tier gratuito).
  *
- * - Sem chave de API e com CORS liberado — seguro para rodar no cliente.
- * - Os GIFs (180p) rotacionam toda segunda 00:00 UTC, então as URLs precisam
- *   ser refrescadas periodicamente (ver `ascendSync`).
+ * Busca sob demanda: nada do catálogo é baixado em massa. Consultamos a API
+ * quando o usuário procura um exercício e só o escolhido é salvo localmente
+ * (ver `ascendImport`). Os GIFs (180p) rotacionam toda segunda 00:00 UTC, então
+ * a mídia é rebuscada ao abrir o exercício (`ExerciseInfo`).
  */
 const ASCEND_BASE = 'https://oss.exercisedb.dev/api/v1'
 
@@ -21,14 +22,7 @@ export interface AscendExercise {
   instructions: string[]
 }
 
-interface AscendPage {
-  success: boolean
-  meta: { total: number; hasNextPage: boolean; nextCursor?: string }
-  data: AscendExercise[]
-}
-
-const PAGE_LIMIT = 25 // máximo aceito pela API
-export const ASCEND_PAGE_DELAY_MS = 2100 // tier gratuito limita a ~1 req / 2s
+const RETRY_DELAY_MS = 2100 // tier gratuito limita a ~1 req / 2s
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -43,13 +37,13 @@ async function fetchJson<T>(url: string, retries = 5): Promise<T> {
       if (res.ok) return (await res.json()) as T
       if (res.status === 429 && attempt < retries) {
         const retryAfter = Number(res.headers.get('retry-after'))
-        await delay(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : ASCEND_PAGE_DELAY_MS)
+        await delay(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : RETRY_DELAY_MS)
         continue
       }
       throw new Error(`AscendAPI ${res.status}`)
     } catch (err) {
       if (attempt >= retries) throw err
-      await delay(ASCEND_PAGE_DELAY_MS * (attempt + 1))
+      await delay(RETRY_DELAY_MS * (attempt + 1))
     }
   }
 }
@@ -69,40 +63,6 @@ export async function getAscendExercise(exerciseId: string): Promise<AscendExerc
     `${ASCEND_BASE}/exercises/${encodeURIComponent(exerciseId)}`,
   )
   return json.data ?? null
-}
-
-export interface AscendPageResult {
-  data: AscendExercise[]
-  total: number
-  /** Cursor para a próxima página; ausente quando acabou. */
-  next?: string
-}
-
-/** Busca uma página do catálogo. `after` é o último id já visto (paginador). */
-export async function fetchAscendPage(after?: string): Promise<AscendPageResult> {
-  const url = `${ASCEND_BASE}/exercises?limit=${PAGE_LIMIT}${after ? `&after=${encodeURIComponent(after)}` : ''}`
-  const page = await fetchJson<AscendPage>(url)
-  return { data: page.data, total: page.meta.total, next: page.meta.hasNextPage ? page.meta.nextCursor : undefined }
-}
-
-/** Percorre o catálogo inteiro, paginando por `after`. Deduplica por id. */
-export async function fetchAscendCatalog(
-  onProgress?: (loaded: number, total: number) => void,
-): Promise<AscendExercise[]> {
-  const byId = new Map<string, AscendExercise>()
-  let after: string | undefined
-  let total = 0
-
-  do {
-    const page = await fetchAscendPage(after)
-    total = page.total
-    for (const ex of page.data) byId.set(ex.exerciseId, ex)
-    onProgress?.(byId.size, total)
-    after = page.next
-    if (after) await delay(ASCEND_PAGE_DELAY_MS)
-  } while (after)
-
-  return [...byId.values()]
 }
 
 /** Exercício da Ascend → registro local. `id` é determinístico por ascendId. */
