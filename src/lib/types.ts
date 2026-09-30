@@ -73,8 +73,15 @@ export interface SetEntry {
 
 export interface WorkoutSession {
   id: string
+  /** Link solto para a rotina de origem. NÃO usar para exibir o treino — a rotina pode mudar. */
   routineId?: string
   routineName: string
+  /**
+   * Cópia da rotina no instante em que o treino começou. É a fonte da verdade
+   * da estrutura do treino: editar/excluir a rotina nunca altera um treino já
+   * iniciado. Treino livre = [].
+   */
+  routineItems?: RoutineItem[]
   /** Onde o treino foi feito (academia, casa...). Carga comparável muda por local. */
   placeId?: string
   startedAt: number

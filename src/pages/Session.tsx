@@ -28,7 +28,6 @@ export default function SessionPage() {
 function SessionView({ session }: { session: WorkoutSession }) {
   const navigate = useNavigate()
   const exercises = useLiveQuery(() => db.exercises.toArray(), [], [])
-  const routines = useLiveQuery(() => db.routines.toArray(), [], [])
   const allSessions = useLiveQuery(() => db.sessions.toArray(), [], [])
   const settings = useLiveQuery(() => db.settings.get('app'))
   const placesRaw = useLiveQuery(() => db.places.toArray(), [], [])
@@ -46,11 +45,12 @@ function SessionView({ session }: { session: WorkoutSession }) {
 
   const unit = settings?.unit ?? 'kg'
   const exById = new Map(exercises.map((e) => [e.id, e]))
-  const routine = session.routineId ? routines.find((r) => r.id === session.routineId) : undefined
+  // Estrutura congelada no início do treino — independe da rotina atual.
+  const routineItems = session.routineItems ?? []
 
-  // Exercícios da sessão = os da rotina + extras adicionados avulsos, sem repetir.
+  // Exercícios da sessão = os do snapshot + extras adicionados avulsos, sem repetir.
   const exerciseIds: string[] = []
-  for (const eid of [...(routine?.items.map((i) => i.exerciseId) ?? []), ...session.sets.map((s) => s.exerciseId)]) {
+  for (const eid of [...routineItems.map((i) => i.exerciseId), ...session.sets.map((s) => s.exerciseId)]) {
     if (!exerciseIds.includes(eid)) exerciseIds.push(eid)
   }
 
@@ -186,7 +186,7 @@ function SessionView({ session }: { session: WorkoutSession }) {
         {exerciseIds.map((eid) => {
           const ex = exById.get(eid)
           const sets = setsOf(eid)
-          const target = routine?.items.find((i) => i.exerciseId === eid)
+          const target = routineItems.find((i) => i.exerciseId === eid)
           const suggestion = suggestNext(allSessions, eid, session.placeId)
           const isCollapsed = collapsed[eid] ?? true
           const doneSets = sets.filter((s) => s.done)

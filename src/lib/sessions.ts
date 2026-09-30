@@ -19,6 +19,8 @@ export async function startWorkout(routine?: Routine): Promise<WorkoutSession> {
     id: uid('ws_'),
     routineId: routine?.id,
     routineName: routine?.name ?? 'Treino livre',
+    // Clona a rotina já no início: o treino deixa de depender dela.
+    routineItems: routine?.items.map((it) => ({ ...it })) ?? [],
     placeId: settings?.currentPlaceId,
     startedAt: Date.now(),
     sets: [],

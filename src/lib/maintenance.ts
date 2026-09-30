@@ -66,6 +66,7 @@ async function runRepair(): Promise<void> {
     if (builtinRoutines.length > 0) {
       const ids = new Set(builtinRoutines.map((r) => r.id))
       for (const s of await db.sessions.toArray()) {
+        // Só solta o link: a estrutura do treino vive em session.routineItems.
         if (s.routineId && ids.has(s.routineId)) await db.sessions.update(s.id, { routineId: undefined })
       }
       await db.routines.bulkDelete(builtinRoutines.map((r) => r.id))

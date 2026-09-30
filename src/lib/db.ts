@@ -28,6 +28,19 @@ class LogbookDB extends Dexie {
       places: 'id, name, order',
       sessions: 'id, routineId, startedAt, placeId',
     })
+    // Backfill: treinos antigos passam a carregar a cópia da rotina. Sem rotina
+    // (ou rotina já apagada) fica [] — a estrutura original é irrecuperável, mas
+    // as séries gravadas permanecem.
+    this.version(5).upgrade(async (tx) => {
+      const routines = (await tx.table('routines').toArray()) as Routine[]
+      const byId = new Map(routines.map((r) => [r.id, r]))
+      const sessions = (await tx.table('sessions').toArray()) as WorkoutSession[]
+      for (const s of sessions) {
+        if (s.routineItems) continue
+        const items = s.routineId ? byId.get(s.routineId)?.items : undefined
+        await tx.table('sessions').update(s.id, { routineItems: items?.map((it) => ({ ...it })) ?? [] })
+      }
+    })
   }
 }
 
