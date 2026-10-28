@@ -250,10 +250,29 @@ async function recoverMissingExercises(
   }
   if (recovered.size === 0) return
 
-  const existingIds = new Set((await db.exercises.toArray()).map((e) => e.id))
+  const exercises = await db.exercises.toArray()
+  const existingIds = new Set(exercises.map((e) => e.id))
+  // Nome do CSV que já existe na base embutida: remapeia o id antigo para o
+  // exercício do catálogo (com GIF) em vez de criar uma cópia sem mídia.
+  const byName = new Map<string, Exercise>()
+  for (const e of exercises) {
+    const keys = [e.name]
+    if (e.nameEn) keys.push(e.nameEn)
+    for (const raw of keys) {
+      const key = raw.trim().toLowerCase()
+      if (!byName.has(key) || e.source === 'ascend') byName.set(key, e)
+    }
+  }
+
+  const remap = new Map<string, string>()
   const toAdd: Exercise[] = []
   for (const [id, info] of recovered) {
     if (existingIds.has(id)) continue
+    const match = byName.get(info.name.trim().toLowerCase())
+    if (match) {
+      remap.set(id, match.id)
+      continue
+    }
     toAdd.push({
       id,
       name: info.name,
@@ -264,6 +283,24 @@ async function recoverMissingExercises(
     })
   }
   if (toAdd.length > 0) await db.exercises.bulkAdd(toAdd)
+  if (remap.size === 0) return
+
+  const mapId = (id: string) => remap.get(id) ?? id
+  await db.transaction('rw', [db.routines, db.sessions], async () => {
+    for (const r of await db.routines.toArray()) {
+      const items = r.items.map((it) => ({ ...it, exerciseId: mapId(it.exerciseId) }))
+      if (items.some((it, i) => it.exerciseId !== r.items[i].exerciseId)) {
+        await db.routines.update(r.id, { items, updatedAt: Date.now() })
+      }
+    }
+    for (const s of await db.sessions.toArray()) {
+      const sets = s.sets.map((st) => ({ ...st, exerciseId: mapId(st.exerciseId) }))
+      const routineItems = s.routineItems?.map((it) => ({ ...it, exerciseId: mapId(it.exerciseId) }))
+      if (sets.some((st, i) => st.exerciseId !== s.sets[i].exerciseId) || routineItems?.some((it, i) => it.exerciseId !== s.routineItems?.[i].exerciseId)) {
+        await db.sessions.update(s.id, { sets, ...(routineItems ? { routineItems } : {}) })
+      }
+    }
+  })
 }
 
 export function downloadFile(filename: string, content: string, mime = 'text/csv') {
