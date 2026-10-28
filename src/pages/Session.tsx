@@ -9,6 +9,7 @@ import WorkoutTimer from '../components/WorkoutTimer'
 import { db, ensureSettings } from '../lib/db'
 import { toLocalInput } from '../lib/datetime'
 import { sortPlaces } from '../lib/places'
+import { matchesExercise } from '../lib/search'
 import { getOpenSession } from '../lib/sessions'
 import { detectPR, lastLoad, suggestNext, type PRInfo } from '../lib/stats'
 import { SET_KIND_LABEL, uid, type Exercise, type SetEntry, type SetKind, type WorkoutSession } from '../lib/types'
@@ -146,7 +147,7 @@ function SessionView({ session }: { session: WorkoutSession }) {
 
   const doneCount = session.sets.filter((s) => s.done).length
   const filteredExercises = exercises
-    .filter((e) => !q || e.name.toLowerCase().includes(q.toLowerCase()))
+    .filter((e) => matchesExercise(e, q))
     .slice(0, 15)
 
   return (
@@ -207,7 +208,7 @@ function SessionView({ session }: { session: WorkoutSession }) {
                   aria-expanded={!isCollapsed}
                   className="min-w-0 flex-1 text-left"
                 >
-                  <p className="flex items-center font-extrabold leading-tight capitalize">
+                  <p className="flex items-center font-extrabold leading-tight">
                     {isCollapsed ? (
                       <ChevronRight className="mr-1 size-4 shrink-0 text-zinc-500" />
                     ) : (

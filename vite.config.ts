@@ -41,13 +41,24 @@ export default defineConfig({
         navigateFallback: 'index.html',
         runtimeCaching: [
           {
-            // GIFs de execução da AscendAPI (baixados sob demanda). As URLs
+            // GIFs de 360p do espelho Gymvisual (ExerciseGymGifsDB). A URL é
+            // fixada na versão v1.1.0, então o cache pode ser permanente.
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/gh\/JahelCuadrado\/ExerciseGymGifsDB@v1\.1\.0\/.*\.gif$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gymvisual-gifs',
+              expiration: { maxEntries: 400, maxAgeSeconds: 365 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Fallback: GIFs de 180p da AscendAPI (baixados sob demanda). As URLs
             // rotacionam toda segunda 00:00 UTC, então o cache expira antes (6 dias).
             urlPattern: /^https:\/\/static\.exercisedb\.dev\/.*\.gif$/,
             handler: 'CacheFirst',
             options: {
               cacheName: 'ascend-gifs',
-              expiration: { maxEntries: 500, maxAgeSeconds: 6 * 24 * 60 * 60 },
+              expiration: { maxEntries: 200, maxAgeSeconds: 6 * 24 * 60 * 60 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },

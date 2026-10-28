@@ -32,18 +32,27 @@ export type Equipment =
 
 export interface Exercise {
   id: string
+  /** Nome exibido (pt-BR para a base Ascend). */
   name: string
+  /** Nome original em inglês — usado só na busca. */
+  nameEn?: string
   muscleGroup: MuscleGroup
   equipment: Equipment
   unilateral: boolean
   builtin?: boolean
   createdAt: number
-  /** 'ascend' = importado da AscendAPI sob demanda (tem GIF e instruções). */
+  /** 'ascend' = base empacotada da AscendAPI (com mídia e instruções). */
   source?: 'ascend'
   /** id estável na AscendAPI (ex: "EIeI8Vf"). Nunca muda. */
   ascendId?: string
-  /** URL do GIF. Rotaciona toda segunda 00:00 UTC — rebuscada ao abrir o exercício. */
+  /**
+   * URL do GIF. 360p do espelho Gymvisual quando há correspondência; senão,
+   * 180p da AscendAPI (essa URL rotaciona toda segunda 00:00 UTC).
+   */
   gifUrl?: string
+  gifSource?: 'gymvisual' | 'ascend'
+  /** GIF de 180p já visto antes, usado se o de 360p não estiver em cache (offline). */
+  gifUrlFallback?: string
   bodyParts?: string[]
   targetMuscles?: string[]
   secondaryMuscles?: string[]

@@ -17,24 +17,20 @@ export default function ExerciseInfo({ exercise, onClose }: Props) {
 
   const localId = exercise?.id
   const ascendId = exercise?.ascendId
+  const hasGif = Boolean(exercise?.gifUrl)
+  const isAscendGif = exercise?.gifSource === 'ascend'
   const ex = exercise && media?.id === exercise.id ? { ...exercise, ...media.patch } : exercise
 
-  // A mídia da AscendAPI (URLs e instruções) rotaciona semanalmente: rebusca
-  // ao abrir e atualiza o registro local. Offline, usa o que já está salvo.
+  // Sem GIF de 360p no catálogo, busca o de 180p na AscendAPI (URL rotaciona
+  // semanalmente). Offline, usa o que já está salvo.
   useEffect(() => {
-    if (!ascendId || !localId) return
+    if (!ascendId || !localId || (hasGif && !isAscendGif)) return
     let alive = true
     setLoadingMedia(true)
     getAscendExercise(ascendId)
       .then((full) => {
-        if (!alive || !full) return
-        const patch: Partial<Exercise> = {
-          gifUrl: full.gifUrl,
-          instructions: full.instructions,
-          targetMuscles: full.targetMuscles,
-          secondaryMuscles: full.secondaryMuscles,
-          bodyParts: full.bodyParts,
-        }
+        if (!alive || !full?.gifUrl) return
+        const patch: Partial<Exercise> = { gifUrl: full.gifUrl, gifSource: 'ascend' }
         setMedia({ id: localId, patch })
         void db.exercises.update(localId, patch)
       })
@@ -47,13 +43,27 @@ export default function ExerciseInfo({ exercise, onClose }: Props) {
     return () => {
       alive = false
     }
-  }, [ascendId, localId])
+  }, [ascendId, localId, hasGif, isAscendGif])
 
   if (!ex) return null
 
+  const exerciseId = ex.id
+  const fallbackGif = ex.gifUrlFallback
   const steps = (ex.instructions ?? []).map((s) => s.replace(/^step\s*:?\s*\d+\s*/i, '').trim()).filter(Boolean)
-  const failed = failedFor === ex.id
-  const showGif = ex.gifUrl && !failed
+  const displayGif = ex.gifUrl ?? fallbackGif
+  const displaySource = ex.gifUrl ? ex.gifSource : fallbackGif ? 'ascend' : undefined
+  const failed = failedFor === exerciseId
+  const showGif = displayGif && !failed
+  const gifMaxWidth = displaySource === 'gymvisual' ? 'max-w-[360px]' : 'max-w-[200px]'
+
+  /** Se o 360p não estiver em cache (offline), tenta o 180p salvo antes. */
+  function handleGifError() {
+    if (displaySource === 'gymvisual' && fallbackGif) {
+      setMedia({ id: exerciseId, patch: { gifUrl: fallbackGif, gifSource: 'ascend' } })
+      return
+    }
+    setFailedFor(exerciseId)
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-label={ex.name}>
@@ -63,10 +73,13 @@ export default function ExerciseInfo({ exercise, onClose }: Props) {
 
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="text-lg font-extrabold leading-tight capitalize">{ex.name}</h3>
+            <h3 className="text-lg font-extrabold leading-tight">{ex.name}</h3>
+            {ex.nameEn && ex.nameEn.toLowerCase() !== ex.name.toLowerCase() && (
+              <p className="mt-0.5 text-[11px] italic capitalize text-zinc-500">{ex.nameEn}</p>
+            )}
             <p className="mt-0.5 text-xs text-zinc-400">
               {ex.muscleGroup} • {ex.equipment}
-              {ex.unilateral ? ' • unilateral' : ''}
+              {ex.unilateral && !/unilateral|unipodal|alternad/i.test(ex.name) ? ' • unilateral' : ''}
             </p>
           </div>
           <button
@@ -80,11 +93,12 @@ export default function ExerciseInfo({ exercise, onClose }: Props) {
 
         {showGif ? (
           <img
-            src={ex.gifUrl}
+            src={displayGif}
             alt={`Execução de ${ex.name}`}
             loading="lazy"
-            onError={() => setFailedFor(ex.id)}
-            className="mt-3 w-full rounded-2xl bg-zinc-950 object-contain"
+            decoding="async"
+            onError={handleGifError}
+            className={`mx-auto mt-3 w-full ${gifMaxWidth} rounded-2xl bg-zinc-950 object-contain`}
           />
         ) : loadingMedia && ex.source === 'ascend' ? (
           <div className="mt-3 flex aspect-video w-full items-center justify-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-950 text-sm text-zinc-500">
@@ -125,7 +139,10 @@ export default function ExerciseInfo({ exercise, onClose }: Props) {
         )}
 
         {ex.source === 'ascend' && (
-          <p className="mt-4 text-center text-[11px] text-zinc-600">Dados e mídia por AscendAPI (ExerciseDB)</p>
+          <p className="mt-4 text-center text-[11px] text-zinc-600">
+            Dados por AscendAPI
+            {displaySource === 'gymvisual' ? ' • Mídia por Gymvisual (ExerciseGymGifsDB)' : ''}
+          </p>
         )}
       </div>
     </div>

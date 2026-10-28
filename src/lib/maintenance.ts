@@ -28,7 +28,8 @@ async function runRepair(): Promise<void> {
 
     if (await db.meta.get('repair-v2')) return
 
-    const exercises = await db.exercises.toArray()
+    // A base Ascend tem variações homônimas legítimas: não entra no dedupe por nome.
+    const exercises = (await db.exercises.toArray()).filter((e) => e.source !== 'ascend')
     const byKey = new Map<string, Exercise[]>()
     for (const e of exercises) {
       const key = `${e.muscleGroup}|${norm(e.name)}`

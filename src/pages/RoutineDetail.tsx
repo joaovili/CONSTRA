@@ -3,6 +3,7 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { db } from '../lib/db'
+import { matchesExercise } from '../lib/search'
 import type { Routine, RoutineItem } from '../lib/types'
 import { uid } from '../lib/types'
 
@@ -27,7 +28,7 @@ function RoutineEditor({ routine }: { routine?: Routine }) {
   const [q, setQ] = useState('')
 
   const exById = new Map(exercises.map((e) => [e.id, e]))
-  const filtered = exercises.filter((e) => !q || e.name.toLowerCase().includes(q.toLowerCase())).slice(0, 20)
+  const filtered = exercises.filter((e) => matchesExercise(e, q)).slice(0, 20)
 
   function applyItems(next: RoutineItem[]) {
     setItems(next)

@@ -3,10 +3,12 @@ import type { Equipment, Exercise, MuscleGroup } from './types'
 /**
  * Cliente da biblioteca AscendAPI (ExerciseDB V1, tier gratuito).
  *
- * A lista completa de exercícios (sem GIF) é empacotada no app — ver
- * `ascendCatalog` e `public/ascend-catalog.json`. Só os GIFs (180p) são
- * buscados na API, ao abrir um exercício, porque as URLs rotacionam toda
- * segunda 00:00 UTC.
+ * A lista completa de exercícios é empacotada no app — ver `ascendCatalog`,
+ * `public/ascend-catalog.json` e `public/ascend-pt.json`.
+ *
+ * O catálogo traz os GIFs de 360p do espelho Gymvisual (ExerciseGymGifsDB).
+ * Quando o exercício não tem correspondência lá, o GIF de 180p é buscado na
+ * AscendAPI ao abrir, porque as URLs dela rotacionam toda segunda 00:00 UTC.
  */
 const ASCEND_BASE = 'https://oss.exercisedb.dev/api/v1'
 
@@ -59,21 +61,41 @@ export async function getAscendExercise(exerciseId: string): Promise<AscendExerc
   return json.data ?? null
 }
 
+interface LocalOverrides {
+  /** Nome em pt-BR (o inglês fica em `nameEn` para a busca). */
+  name?: string
+  /** Instruções em pt-BR. */
+  instructions?: string[]
+  /** GIF de 360p do espelho Gymvisual. */
+  gifUrl?: string
+  /** GIF de 180p já visto antes, usado como fallback offline. */
+  gifUrlFallback?: string
+}
+
 /** Item do catálogo → registro local. `id` é determinístico por ascendId. */
-export function catalogEntryToLocal(entry: AscendCatalogEntry, createdAt = Date.now(), id?: string): Exercise {
+export function catalogEntryToLocal(
+  entry: AscendCatalogEntry,
+  createdAt = Date.now(),
+  id?: string,
+  overrides: LocalOverrides = {},
+): Exercise {
   return {
     id: id ?? `ex_as_${entry.exerciseId}`,
-    name: entry.name,
+    name: overrides.name ?? entry.name,
+    nameEn: entry.name,
     muscleGroup: muscleGroupFor(entry.targetMuscles, entry.bodyParts),
     equipment: equipmentFor(entry.equipments),
     unilateral: isUnilateral(entry.name),
     builtin: true,
     source: 'ascend',
     ascendId: entry.exerciseId,
+    gifUrl: overrides.gifUrl,
+    gifSource: overrides.gifUrl ? 'gymvisual' : undefined,
+    gifUrlFallback: overrides.gifUrlFallback,
     bodyParts: entry.bodyParts,
     targetMuscles: entry.targetMuscles,
     secondaryMuscles: entry.secondaryMuscles,
-    instructions: entry.instructions,
+    instructions: overrides.instructions ?? entry.instructions,
     createdAt,
   }
 }

@@ -96,8 +96,8 @@ export default function Settings() {
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3">
         <p className="mb-1 font-bold">Biblioteca de exercícios</p>
         <p className="text-sm text-zinc-400">
-          A base de exercícios vem pronta com o app (AscendAPI). Os GIFs e o passo a passo são baixados só quando você
-          abre um exercício, e ficam em cache para uso offline.
+          A base de exercícios vem pronta com o app (AscendAPI), com nomes e passo a passo em português. Os GIFs em
+          360p ficam em cache para uso offline; quando não há versão em 360p, o app baixa a de 180p ao abrir.
         </p>
       </div>
 

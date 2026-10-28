@@ -3,6 +3,7 @@ import {
   MUSCLE_GROUPS,
   uid,
   type Equipment,
+  type Exercise,
   type MuscleGroup,
   type Routine,
   type RoutineItem,
@@ -134,10 +135,21 @@ export async function importRoutinesCSV(text: string): Promise<ImportResult> {
   }
   if (groups.size === 0) throw new Error('Nenhuma ficha encontrada no CSV')
 
+  // Antes de importar, recupera exercícios que existiam no histórico. As
+  // rotinas/treinos guardam só o `exerciseId`; casando a ordem dos itens com a
+  // ordem das linhas do CSV, reconstruímos id → nome e recriamos o exercício
+  // com o MESMO id. Assim histórico e rotinas religam sozinhos.
+  await recoverMissingExercises(groups, { iExercise, iGroup, iEquipment, iUnilateral })
+
   let createdExercises = 0
   await db.transaction('rw', [db.exercises, db.routines], async () => {
     const exercises = await db.exercises.toArray()
-    const exerciseByName = new Map(exercises.map((e) => [e.name.trim().toLowerCase(), e]))
+    const exerciseByName = new Map<string, Exercise>()
+    for (const e of exercises) {
+      exerciseByName.set(e.name.trim().toLowerCase(), e)
+      // CSVs antigos traziam o nome em inglês.
+      if (e.nameEn) exerciseByName.set(e.nameEn.trim().toLowerCase(), e)
+    }
     const routines = await db.routines.toArray()
     const routineByName = new Map(routines.map((r) => [r.name.trim().toLowerCase(), r]))
 
@@ -186,6 +198,66 @@ export async function importRoutinesCSV(text: string): Promise<ImportResult> {
   })
 
   return { routines: groups.size, exercises: createdExercises }
+}
+
+interface CsvColumns {
+  iExercise: number
+  iGroup: number
+  iEquipment: number
+  iUnilateral: number
+}
+
+/**
+ * Recria exercícios perdidos a partir do CSV, preservando o `id` original.
+ * Monta `id → nome` casando os itens das rotinas (e a cópia congelada de cada
+ * treino) com as linhas do CSV, na mesma ordem em que foram exportados.
+ */
+async function recoverMissingExercises(
+  groups: Map<string, { name: string; rows: string[][] }>,
+  cols: CsvColumns,
+): Promise<void> {
+  const cell = (r: string[], i: number) => (i >= 0 ? (r[i] ?? '').trim() : '')
+  const recovered = new Map<string, { name: string; group: string; equipment: string; unilateral: string }>()
+
+  const collect = (items: { exerciseId: string }[], csvRows: string[][]) => {
+    const n = Math.min(items.length, csvRows.length)
+    for (let i = 0; i < n; i++) {
+      const id = items[i].exerciseId
+      const name = cell(csvRows[i], cols.iExercise)
+      if (!id || !name || recovered.has(id)) continue
+      recovered.set(id, {
+        name,
+        group: cell(csvRows[i], cols.iGroup),
+        equipment: cell(csvRows[i], cols.iEquipment),
+        unilateral: cell(csvRows[i], cols.iUnilateral),
+      })
+    }
+  }
+
+  for (const { name, rows: csvRows } of groups.values()) {
+    const routine = await db.routines.where('name').equals(name).first()
+    if (routine) collect(routine.items, csvRows)
+  }
+  for (const s of await db.sessions.toArray()) {
+    const group = s.routineName ? groups.get(s.routineName.trim().toLowerCase()) : undefined
+    if (group && s.routineItems?.length) collect(s.routineItems, group.rows)
+  }
+  if (recovered.size === 0) return
+
+  const existingIds = new Set((await db.exercises.toArray()).map((e) => e.id))
+  const toAdd: Exercise[] = []
+  for (const [id, info] of recovered) {
+    if (existingIds.has(id)) continue
+    toAdd.push({
+      id,
+      name: info.name,
+      muscleGroup: (MUSCLE_GROUPS as string[]).includes(info.group) ? (info.group as MuscleGroup) : 'Corpo todo',
+      equipment: (EQUIPMENT as string[]).includes(info.equipment) ? (info.equipment as Equipment) : 'Outro',
+      unilateral: ['sim', 's', '1', 'true', 'verdadeiro', 'yes'].includes(info.unilateral.toLowerCase()),
+      createdAt: Date.now(),
+    })
+  }
+  if (toAdd.length > 0) await db.exercises.bulkAdd(toAdd)
 }
 
 export function downloadFile(filename: string, content: string, mime = 'text/csv') {

@@ -3,8 +3,8 @@
 Logbook universal para anotar **carga × reps** de cada exercício e ver a progressão. Mobile-first, offline, instalável no iPhone via Safari.
 
 - 📱 PWA: instala na home, abre fullscreen, funciona sem internet
-- 📚 Base de ~1500 exercícios (AscendAPI) empacotada no app + criar os seus
-- 🖼️ GIF de execução e passo a passo buscados só ao abrir o exercício (com cache offline)
+- 📚 Base de ~1500 exercícios empacotada no app, com nomes e instruções em pt-BR
+- 🖼️ GIF de execução em 360p (fallback 180p sob demanda) e passo a passo, com cache offline
 - 🏋️ Rotinas editáveis + treino livre
 - ✅ Sessão com sugestão de carga, timer de descanso, badge de PR
 - 📈 Gráfico carga máx / volume / 1RM estimado por exercício
@@ -54,6 +54,12 @@ O projeto já tem `Dockerfile` + `nginx.conf` (build estático servido via nginx
 2. **Compartilhar ⬆️ → Adicionar à Tela de Início**
 3. Abrir pelo ícone CONSTRA (offline funciona)
 4. Exportar/importar fichas em CSV de tempos em tempos em **Ajustes** (o iOS pode limpar dados do site sem espaço)
+
+## Créditos e licença de mídia
+
+- Metadados dos exercícios: [AscendAPI / ExerciseDB](https://oss.exercisedb.dev/docs) (tier gratuito).
+- GIFs de execução em 360p: [ExerciseGymGifsDB](https://github.com/JahelCuadrado/ExerciseGymGifsDB), mídia © Gymvisual. O repositório não licencia a mídia para uso comercial; se o app for monetizado, licencie os GIFs com a Gymvisual ou troque por um dataset próprio.
+- Nomes e instruções em pt-BR foram traduzidos/adaptados para a biblioteca do app (`public/ascend-pt.json`).
 
 ## Stack
 

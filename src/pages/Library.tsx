@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ExerciseInfo from '../components/ExerciseInfo'
 import { db } from '../lib/db'
+import { matchesExercise } from '../lib/search'
 import type { Equipment, Exercise, MuscleGroup } from '../lib/types'
 import { MUSCLE_GROUPS, uid } from '../lib/types'
 
@@ -28,7 +29,7 @@ export default function Library() {
 
   const filtered = all.filter((e) => {
     if (muscle !== 'Todas' && e.muscleGroup !== muscle) return false
-    if (q && !e.name.toLowerCase().includes(q.toLowerCase())) return false
+    if (!matchesExercise(e, q)) return false
     return true
   })
   // A base tem ~1500 itens: renderiza um pedaço e deixa o resto para a busca.
@@ -142,23 +143,15 @@ export default function Library() {
               aria-label={`Ver execução de ${e.name}`}
               className="flex min-w-0 flex-1 items-center gap-3 text-left"
             >
-              {e.gifUrl ? (
-                <img
-                  src={e.gifUrl}
-                  alt=""
-                  loading="lazy"
-                  className="size-14 shrink-0 rounded-lg bg-zinc-950 object-cover"
-                />
-              ) : (
-                <span className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-zinc-950 text-zinc-600">
-                  <Dumbbell className="size-6" />
-                </span>
-              )}
+              {/* Sem thumbnail: baixar GIFs de 360p para 100 itens da lista seria pesado. */}
+              <span className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-zinc-950 text-zinc-600">
+                <Dumbbell className="size-6" />
+              </span>
               <span className="min-w-0">
-                <span className="block truncate font-semibold capitalize leading-tight">{e.name}</span>
+                <span className="block truncate font-semibold leading-tight">{e.name}</span>
                 <span className="block text-xs text-zinc-500">
                   {e.muscleGroup} • {e.equipment}
-                  {e.unilateral ? ' • unilateral' : ''}
+                  {e.unilateral && !/unilateral|unipodal|alternad/i.test(e.name) ? ' • unilateral' : ''}
                 </span>
               </span>
             </button>

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { db } from '../lib/db'
 import { sortPlaces } from '../lib/places'
+import { matchesExercise } from '../lib/search'
 import { historyForExercise } from '../lib/stats'
 import { MUSCLE_GROUPS } from '../lib/types'
 
@@ -33,7 +34,7 @@ export default function Progress() {
   const filtered = useMemo(
     () =>
       (exercises ?? [])
-        .filter((e) => (group === 'Todas' || e.muscleGroup === group) && (!q || e.name.toLowerCase().includes(q.toLowerCase())))
+        .filter((e) => (group === 'Todas' || e.muscleGroup === group) && matchesExercise(e, q))
         .slice(0, 50),
     [exercises, q, group],
   )
