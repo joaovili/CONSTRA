@@ -146,9 +146,15 @@ export async function importRoutinesCSV(text: string): Promise<ImportResult> {
     const exercises = await db.exercises.toArray()
     const exerciseByName = new Map<string, Exercise>()
     for (const e of exercises) {
-      exerciseByName.set(e.name.trim().toLowerCase(), e)
+      const keys = [e.name]
       // CSVs antigos traziam o nome em inglês.
-      if (e.nameEn) exerciseByName.set(e.nameEn.trim().toLowerCase(), e)
+      if (e.nameEn) keys.push(e.nameEn)
+      for (const raw of keys) {
+        const key = raw.trim().toLowerCase()
+        const current = exerciseByName.get(key)
+        // A base embutida (com GIF) vence exercícios recuperados/criados.
+        if (!current || e.source === 'ascend') exerciseByName.set(key, e)
+      }
     }
     const routines = await db.routines.toArray()
     const routineByName = new Map(routines.map((r) => [r.name.trim().toLowerCase(), r]))
